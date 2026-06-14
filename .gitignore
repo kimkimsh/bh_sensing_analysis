@@ -81,3 +81,8 @@ Thumbs.db
 # Large datasets and model artifacts — managed outside git
 data/
 ai_model/
+
+# Downloaded ONNX Runtime native SDK (Python uses the pip wheel), DB file, cached artifacts
+onnxruntime-linux-x64-*/
+*.duckdb
+artifacts/
