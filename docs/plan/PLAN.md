@@ -21,18 +21,17 @@
 (보유: `meatSegNet_best.onnx` + 외부가중치 `.onnx.data`, `exlight_remover_e32_int8.onnx`, 그리고 ORT 네이티브 런타임 `onnxruntime-linux-x64-1.23.2`).
 사용자가 지목한 `onnxruntime-linux-x64-1.23.2`는 **모델이 아니라 ONNX Runtime 엔진**(`libonnxruntime.so`)이다.
 
-따라서 보유 자산으로 충실하게 구현 가능한 정의를 채택한다(**Option 1**):
+**확정(하이브리드)**: 도넨스 cascade를 **양쪽 통일**하고 정직하게 **"ONNX ROI vs Rule ROI"** 로 명명(차이 = 분할 품질). AI 세그멘테이션 오버레이가 **hero**. F-B5(학습형 도넨스)는 **P1 스트레치**.
 
 | 방식 | 파이프라인 | ONNX 사용 |
 |------|-----------|-----------|
-| **AI** | meatSegNet(ONNX, 5채널) → 고기 인스턴스/ROI 분할 → ROI 내부 도넨스(스펙트럼 규칙) → 점수 | ✅ meatSegNet |
-| **조건문** | 규칙기반 ROI(모폴로지 근사) → 동일 도넨스 규칙 → 점수 | ❌ 순수 numpy |
+| **ONNX ROI** (AI) | meatSegNet(ONNX, 5채널) → 고기 인스턴스/ROI 분할 → ROI 내부 도넨스(**통일 cascade**) → 점수 | ✅ meatSegNet |
+| **Rule ROI** (조건문) | 규칙기반 ROI(모폴로지 근사) → **동일 cascade** → 점수 | ❌ 순수 numpy |
 
 - 두 방식은 **동일한 출력 계약(`ScoreResult`)** 을 생성한다. 차이는 **ROI 산출 주체**(ONNX 분할 vs 규칙)와,
   (스트레치 시) 픽셀 분류기 종류뿐. → **사과 대 사과 비교**가 성립.
 - **비교 데모는 beef striploin에 집중**한다(이유: §8 리스크). 다른 메뉴는 조건문 위주 + 클래스별 % 표시.
-- **스트레치(시간 남을 때)**: 9개 파장 특징으로 소형 픽셀 분류기(MLP/로지스틱)를 학습해 "AI 도넨스"로 끼워,
-  도넨스 자체가 다른 진짜 ML-vs-규칙 비교를 추가(Option 3). 모델이 입수되면 그 자리에 교체(Option 2).
+- **F-B5 (P1 스트레치)**: 9개 파장 특징으로 소형 픽셀 분류기(MLP/로지스틱) 학습 → AI 도넨스 자체를 규칙과 다르게(진짜 ML-vs-규칙). 원본 도넨스 모델 입수 시 그 자리에 교체.
 
 ### 비범위 (v1 컷 — §8)
 exlight 복원, 전 메뉴 충실 포팅, 픽셀정확 ROI 패리티(GridBasedAlgorithm), per-instance 드릴다운, 오버레이 장식(범례/박스/그리드).

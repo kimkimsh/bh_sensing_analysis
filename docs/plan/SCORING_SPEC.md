@@ -1,6 +1,6 @@
 # SCORING_SPEC — 포팅할 정확한 알고리즘 (구현 계약)
 
-두 방식 모두 **동일 `ScoreResult`** 를 생성한다. 변하는 것은 *픽셀 클래스 판정 + ROI 소스*뿐.
+두 방식 모두 **동일 `ScoreResult`** 를 생성한다. **하이브리드 확정**: 도넨스 cascade를 통일하므로 P0에서 변하는 것은 **ROI 소스뿐**(메서드명 "ONNX ROI" / "Rule ROI"). F-B5(P1 스트레치) 시에만 AI 픽셀 분류기가 추가로 달라진다. 통일 cascade는 **라이브 `beef_strip_loin/ComponentRecognizer_BeefStripLoin_CharBroiler`** 기준(빌드 시 직접 read 확정).
 모든 산술은 **int32/float**(uint8 오버플로 금지). band는 **(min,max,peak) 튜플**로 키.
 
 ## 0. 공유 출력 계약 `ScoreResult`

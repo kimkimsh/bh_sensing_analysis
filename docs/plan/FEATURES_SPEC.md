@@ -26,12 +26,12 @@
 
 ## B. 점수 산출 (Scoring) — 두 방식
 
-### F-B1 — 조건문(규칙) 점수 · **P0**
+### F-B1 — Rule ROI(조건문) 점수 · **P0**
 - 설명: 순수 numpy 스펙트럼 임계 cascade로 ROI 산출 + 픽셀 도넨스 분류(번트/슬라이틀리/프로퍼) → `ScoreResult`.
 - 출력: `pct_proper/pct_slightly_burnt/pct_burnt(+raw)`, `cooking_score`, `maillard_score`, `grade`.
 - AC: beef striploin capture에서 0~100% 범위의 클래스별 % 및 grade 산출, ROI=0 가드 동작.
 
-### F-B2 — AI(ONNX) 점수 · **P0**
+### F-B2 — ONNX ROI(AI) 점수 · **P0**
 - 설명: meatSegNet(5채널)로 고기 인스턴스/ROI 분할 → 인스턴스별 도넨스 → `ScoreResult`(+per-instance).
 - AC: 실제 meatSegNet 추론으로 label_map(0..4) 생성, `>=500px` 인스턴스만 채택, beef capture에서 점수 산출.
 
