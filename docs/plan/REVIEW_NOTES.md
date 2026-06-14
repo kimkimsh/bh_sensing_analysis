@@ -4,7 +4,8 @@
 아래는 통합 findings → 적용한 수정 → 미해결 결정. (원 docs는 본 노트 반영해 수정함.)
 
 ## 0. 수렴 판정
-4 lens가 **강하게 수렴**: (a) 비교가 구조상 near-tie 위험, (b) 충실도 함정 다수, (c) 비교축은 per-class %여야, (d) 사실 오류 2건(앵커 순서·band 수). Codex 결과는 완료 시 본 절에 수렴/발산 기록.
+4 lens가 **강하게 수렴**: (a) 비교가 구조상 near-tie 위험, (b) 충실도 함정 다수, (c) 비교축은 per-class %여야, (d) 사실 오류 2건(앵커 순서·band 수).
+**Codex(최신 GPT, xhigh) 완료 → 집합 수렴**: 동일 대형 리스크 재확인(약한 비교, 앵커 y-major, 후기통합·실질 직렬, deps 미설치, 오라클 비현실, dedup, 클래스 인코딩). **처방 1건 발산**=약한 비교 해결책(§8). Codex 신규 must-fix 3건도 §8.
 
 ---
 
@@ -70,3 +71,23 @@
 - [ ] **F-B5(학습형 AI 도넨스)를 P1로 승격할지** — 비교를 진짜 다르게 만들지(시간 +α) vs 세그멘테이션-ROI 차이로만 갈지(정직·즉시). → 사용자 확인.
 - [ ] Codex 교차검증 결과 수렴/발산(완료 시 §0).
 - [ ] C++ 오라클: 정적 추출로 대체 확정(권고) vs 시간 남으면 1건 시도.
+
+---
+
+## 8. Codex 교차검증 reconcile (최신 GPT, xhigh)
+
+**수렴(양측 동일)**: 약한 비교/오버스테이트, 앵커 y-major, Phase-2 과소·실질 직렬→Phase-0 end-to-end 1건 먼저, deps 미설치, C++ 오라클 비현실(Qt GUI·capture CLI 없음 `main.cc:21`)→정적추출, dedup, 클래스 인코딩 Phase-0 확정.
+
+**발산 1건 — 약한 비교의 해결책 (= 사용자 A/B 결정)**:
+- **CEO(A)**: F-B5 학습형 도넨스로 도넨스를 다르게 → 산점도 퍼짐, wow.
+- **Codex(B)**: 도넨스를 동일 cascade로 통일하고 정직하게 **"ONNX ROI vs Rule ROI"로 개명** → 차이는 분할 품질(ROI), 오버레이로 가시.
+- **권고(하이브리드)**: **B를 P0로 확실 출하**(정직·실행가능, 세그멘테이션 hero) + 시간 남으면 **F-B5(A)를 P1 스트레치**. 메서드명 정직화.
+
+**Codex 신규 must-fix (문서 반영)**:
+1. **ScoreResult에 오버레이 맵 부재** — Stream D는 roi_mask/class_map/도넨스맵 필요 → ScoreResult(또는 형제)에 렌더용 맵/경로 포함, Phase-0 동결(아니면 D가 A/B에 직렬 의존).
+2. **726-파일 동일 복사 트리 + 244 cross-format 충돌**, 실제 capture **3,044 그룹** → `capture_id`=device/meat/cut/date/posIdx 결정적, 복사 트리 collapse, band당 PNG 우선.
+3. **cascade 변형 불일치** — 라이브 AI는 `beef_strip_loin/ComponentRecognizer_BeefStripLoin_CharBroiler`, 조건문 SPEC은 `_america` 포팅. **옵션 B면 양쪽 동일(라이브 beef) cascade**. 빌드 전 라이브 파일 직접 read 필수.
+4. **3분할(P0)인데 capture 선택(F-D3) P1** 모순 → 최소 선택 **P0** 승격.
+- 참고: 라이브 recognizer가 8-slot 배열에 index 8 기입(`live recognizer:31`) — 소스 버그, 포팅 시 방어.
+
+**판정**: 집합 수렴, 처방 1건만 발산(A/B) → 사용자 결정. 권고 = 하이브리드(B 출하 + F-B5 스트레치) & 정직 개명.

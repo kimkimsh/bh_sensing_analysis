@@ -13,6 +13,8 @@ maillard_score : float                               # 방식별 가중식
 grade:int, grade_label:str                           # grade 0 = 완료(COMPLETE)
 instance_count:int                                   # AI: 채택 인스턴스(>=500px) 수, 조건문: 1
 per_instance : list[InstanceResult]                  # AI 전용 (옵션)
+# 오버레이 렌더용(Stream D 의존) — Phase-0 동결 필수:
+roi_mask : bool[H,W];  class_map : uint8[H,W] ∈ {0..4};  mono_bg_path / overlay_path : str
 ```
 클래스 인덱스(고정): `NOT_ROI=0, NOT_DONE=1, PROPER=2, SLIGHTLY_BURNT=3, BURNT=4`.
 고기 클래스(AI): `0 BEEF, 1 CHICKEN, 2 LAMB, 3 PORK` (label_map = class_id+1; 빌드시 실제 마스크로 확정).

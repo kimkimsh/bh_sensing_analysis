@@ -16,7 +16,7 @@
 
 ### F-A2 — 스펙트럼 큐브 로딩 · **P0**
 - 설명: capture의 파장 프레임을 `(min,max,peak)` 키 dict로 lazy 로드(grayscale uint8). `bandByLed(ledId)` 접근 제공.
-- AC: PNG/JPEG 동일 band 충돌 시 **PNG 우선**; `720`(led10 peak740 vs led9 peak730) **peak로 구분**; `999_999_999` 센티넬·희귀 band 드롭(band_count 미오염).
+- AC: PNG/JPEG 동일 band 충돌 시 **PNG 우선**(244건); `720`(led10 peak740 vs led9 peak730) **peak로 구분**; `999_999_999` 센티넬·희귀 band 드롭(band_count 미오염). `capture_id`=device/meat/cut/date/posIdx **결정적**, **동일 복사 트리(726파일) collapse**. 실제 ~**3,044 capture 그룹**.
 
 ### F-A3 — 메뉴/날짜 인벤토리 · **P1**
 - 설명: 스캔 결과로 사용 가능한 **메뉴 목록**과 **날짜 범위**, capture 수를 집계해 대시보드 필터에 공급.
@@ -79,7 +79,7 @@
 - 설명: 메뉴별 평균 점수(방식별) 그룹 바 차트.
 - AC: 메뉴 다중선택 필터 반영, 방식별 색 구분.
 
-### F-D3 — capture 탐색 · **P1**
+### F-D3 — capture 탐색/선택 · **P0 (최소 선택은 필수 — 3분할 F-C1이 의존)**
 - 설명: 필터된 capture 테이블에서 행 선택 → F-C1/F-C2 상세로 연결.
 - AC: 테이블 정렬/필터, 선택 시 해당 capture 오버레이 로드.
 
