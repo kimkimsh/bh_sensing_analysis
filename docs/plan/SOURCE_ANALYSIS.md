@@ -29,8 +29,7 @@
 - meatSegNet 로드 경로 `./ai_model/meatSegNet_best.onnx` (`OnnxROIRecognizer.h:39`), 미존재 시 규칙기반 ROI fallback (`:42-57`).
 - 도넨스 MLP는 `ComponentRecognizer_BeefStripLoin_America_CharBroiler_AI.h:29` (`./ai_model/Merge_Main_Model_241105.onnx`), 미존재 시 규칙 fallback (`:32-44`). **단 이 _America AI 경로는 라이브 `OnnxComponentRecognizer` 경로가 아님.**
 
-> **결론**: 라이브 AI 경로에서 ONNX는 **분할(ROI)** 만 담당하고, 도넨스는 **규칙**으로 한다.
-> 진짜 "AI 도넨스 vs 규칙 도넨스"는 누락 모델이 필요 → 본 도구는 보유 모델 기준 Option 1 채택(PLAN §1).
+> **결론(직접 검증)**: 라이브 sensing 흐름(`BaseRobotTaskSensing.h:93`, `mainwindow.cpp:1747`)이 `getOnnxInferenceOutput` 호출 → ONNX는 **분할(ROI)** 만, 도넨스는 **규칙**. `Merge_Main_Model` 경로(`recognizeComponentAI`, `AlgorithmManager.h:1824-2412`)는 **라이브 미호출**(별도 레거시 경로). 학습형 AI 도넨스는 본 도구 비범위(구 F-B5 **컷**).
 
 ---
 
@@ -46,7 +45,7 @@
 ## 4. 도넨스 분류 (라이브 경로 = 규칙기반)
 
 - `OnnxComponentRecognizer.doProcess`: label_map을 클래스별(`label==classId+1`)로 분리(`:82-87`), 8-연결 connectedComponents(`:94`), `MIN_INSTANCE_PIXELS=500` 미만 제거(`:102`), per-instance로 `getRecognizer(classId)`에 라우팅(`:199-209`): PORK→`ComponentRecognizer_PorkBelly_Charcoal_CharBroiler`, 그 외→`ComponentRecognizer_BeefStripLoin_CharBroiler`(규칙).
-- 규칙 도넨스(`beef_strip_loin/ComponentRecognizer_BeefStripLoin_CharBroiler.h`)는 ROI 픽셀마다 9개 calibrated band(410/440/460/520/585/650/720/800/930)를 ledId로 읽어 임계 cascade로 burnt/slightly/proper 판정 (정확한 식은 `SCORING_SPEC.md`).
+- 규칙 도넨스(`beef_strip_loin/ComponentRecognizer_BeefStripLoin_CharBroiler.h:112-158`, **직접 read 확정**)는 ROI 픽셀마다 게이트(410/440) + burnt/slightly/proper(살코기+지방 2분기) cascade로 판정. 9밴드 로드(410/440/460/520/585/650/720/800/930)하나 **임계엔 410/440/520/585/650/720/930만 사용**(460·800 미사용). 정확한 식·OOB버그·NOT_DONE 버킷은 `SCORING_SPEC §3`. (초기 문서가 옮긴 `_america` 변형과 게이트/임계/밴드 상이 — **라이브로 확정**.)
 - `beef_strip_loin_america/ComponentRecognizer_..._CharBroiler.h:87-147` (직접 읽음)은 동일 패턴의 _America 변형(약간 다른 임계).
 
 ## 5. 점수 계약과 계산
@@ -55,8 +54,7 @@
 - 퍼센트 = 클래스픽셀/roi·100. **offset** `burnt-3 / slightly-1.5 / proper-5`(0 floor):
   - 인식기 `ComponentRecognizer_...:179-186`(burnt만) / 라이브 `OnnxComponentRecognizer.h:155-180`(셋 다) / 출력 `OnnxInferenceOutput.h:88-90`(셋 다) → **최대 3회 중복 적용**(충실도 편차).
 - **글로벌은 BEEF 인스턴스(classId==0)만 합산** `OnnxInferenceOutput.h:67-86`.
-- 합성 점수: AI `maillard_score = proper*0.7 + slightly*1.5 + burnt*3.0` (`OnnxInferenceOutput.h:56-58,93-95`).
-  조건문(_America) `proper*0.5 + slightly*1.0 + burnt*4.0` (`InferenceOutput_..._America_AI.h:16`) — **스케일 다름, 직접비교 불가**.
+- 합성 점수(**셋 상이, 직접 read**): AI 글로벌 `proper*0.7 + slightly*1.5 + burnt*3.0` (`OnnxInferenceOutput.h:93-95`); 라이브 beef 단일메뉴 `proper*1.0 + slightly*1.0 + burnt*3.0` (`InferenceOutput_ChefCooking_BeefStripLoin.h:16`); _america `proper*0.5 + slightly*1.0 + burnt*4.0`. → **직접비교 불가 → 비교축 per-class %, maillard는 양 방식 동일식(0.7/1.5/3.0) 단일방식 뷰 한정**(Codex 권고).
 - 네이밍: Deep Maillard=`proper`, Slightly Charred=`slightly_burnt`, Carbonized=`burnt`.
 
 ## 6. 시각화 (오버레이 패리티)
@@ -69,8 +67,8 @@
 
 - 경로: `data/<backup>/<deviceId>/<meat>/<cut>/<YYMMDD>/<file>`; 한 날짜 폴더 = position(1,5,6,9 등) × 11 band.
 - 파일명: `ver2_charbroiler_calibrated_<meat>_<cut>_<YYMMDD>_<posIdx>_<wMin>_<wMax>_<wPeak>.png|jpeg`.
-- band 인벤토리: 표준 11 band 각 ~3,067개; 620은 ~2,953(전 capture 아님 — pork 위주). beef capture는 10 band(620 없음). 라벨/마스크 0개.
-- 총 ~33,700 프레임 ≈ **~3,060 captures**. meatSegNet ~0.26s/추론 → 전수 AI ≈ 13–15분.
+- band 인벤토리: **capture별 8–16 band 가변**. beef striploin도 날짜별 8~16 band이며 **일부 capture는 620(620_630_625) 포함**(초기 가정 'beef=10·620없음'은 디스크 검증으로 반증). `band_count` 고정 가정 금지. 라벨/마스크 0개.
+- 총 ~33,682 프레임 ≈ **~2.8k–3.0k captures**(그루핑 정의에 따라 2,817~2,961; 스캔 시 결정적 계산, 박제 금지). meatSegNet ~0.26s/추론 → 전수 AI ≈ 13–15분.
 
 ## 8. 검증 안 된 채 남긴 항목 (빌드 중 확정)
 (a) label_map 클래스 인코딩 정본(주석 vs 팔레트 모순) — 실제 마스크로. (b) LED↔(min,max,peak) 정본표 — `PropertiesDatabase.h`. (c) GridBasedAlgorithm ROI 정확 식(모폴로지 근사 채택). (d) 3중 offset 복원 여부.

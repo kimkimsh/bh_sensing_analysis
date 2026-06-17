@@ -12,7 +12,7 @@
 ## 1. 즉시 적용한 사실 수정 (verified errors)
 
 1. **YOLO-seg 앵커 순서 = y-major** (`OnnxROIRecognizer.h:147-158`의 `for stride{ for y{ for x }}`). 기존 docs "x-major" → **수정**. Stream B는 "실행됨"이 아니라 **실제 추론 → 비어있지 않은 BEEF label_map**을 종료 게이트로.
-2. **band 수는 가변** — beef striploin = **10 band**(620 없음), 날짜 폴더 파일수 10/20/30/90/160(=position수×band수). 기존 "44=4 pos×11 band, ~3,060 captures" → **수정**(메뉴별 band 수 상이, capture = `(meat,cut,date,posIdx)` 그룹).
+2. **band 수는 가변** — 날짜 폴더 파일수 10/20/30/90/160(=position수×band수). 기존 "44=4 pos×11 band, ~3,060 captures" → **수정**(capture별 band 수 상이, capture = `(device,meat,cut,date,posIdx)` 그룹). **[§9 정정: beef striploin도 8–16 가변·일부 620 포함, capture ~2.8k–3.0k 동적]**
 3. **LED↔band 정본표 확보**(`PropertiesDatabase.h:113-125`, devex가 정적 추출 — C++ 빌드 불필요):
 
    | ledId | min | max | peak | 비고 |
@@ -45,9 +45,9 @@
 
 ## 4. 제품/데모 (CEO) — 결정 필요
 
-- **near-tie 위험**: 두 방식이 동일 `DonenessKernel`+규칙을 공유하면 차이가 ROI에서만 발생 → 산점도가 y=x에 붙음.
-  - **권고**: **F-B5(학습형 픽셀 도넨스 분류기)를 P2→P1**로 승격해 AI 도넨스 자체를 다르게. (시간 부족 시: 9밴드 로지스틱이라도 — 결정경계만 달라도 시각적 불일치 발생.)
-  - **대안(F-B5 미채택 시)**: AI **세그멘테이션 오버레이를 hero**로, "AI가 고기를 정밀 분할 vs 규칙은 뭉갬"을 스토리로. (정직·충실, 즉시 실행.)
+- **near-tie 위험**: 두 방식이 동일 cascade를 공유하면 차이가 ROI에서만 발생 → 산점도가 y=x에 붙음. (게이트 탈락 NOT_DONE 대량 → per-class % 델타가 거의 0일 수 있음.)
+  - ~~F-B5 승격~~ → **REJECTED**(2차 리뷰): 사용자 제약(AI=ROI 전용, 도넨스=규칙) 위반 + 라벨 0개라 학습 불가.
+  - **확정**: AI **세그멘테이션 오버레이 + ROI-diff 가시화 hero**(ONNX 윤곽 vs Rule 윤곽 + 대칭차 + ROI 면적/IoU 델타). per-class % 점수는 보조("같은 규칙·더 깨끗한 ROI = 무튜닝 AI 도입"). 정직·충실·즉시 실행.
 - **데모 내러티브(60초)**: "11파장 → AI 세그멘테이션이 스테이크를 인식 → 픽셀 도넨스 채점 → 같은 스테이크를 규칙으로 채점 → **불일치 지점**(델타/산점도) → C++ 엔진 대비 beef striploin 검증". → **C++ 오라클 대신 소스 정적 대조로 '검증' 주장**(아래 5).
 - **차트 우선순위 하향**: 날짜별/메뉴별 추이는 정답 없어 검증 불가·임팩트 약 → "맥락"으로, 절약분을 단일 capture 비교/오버레이 폴리시에 투자.
 
@@ -56,7 +56,7 @@
 - **현 상태(검증)**: `requirements.txt` 없음, `duckdb/pandas/streamlit/plotly/statsmodels` 미설치, `onnxruntime-linux-x64-*/` 미ignore(→ 본 노트로 .gitignore 보강 완료). model 로드 ~0.46s.
 - **C++ 오라클(§7-7) 강등 P0→P2**: `../bh_chef...`는 Qt/CMake UI 바이너리(serial/camera 의존) — 90분 내 헤드리스 채점 덤프 비현실적. **대체**: 스코어링 상수·LED표를 **소스에서 정적 추출**(이미 LED표 확보), 편차 문서화(NF-1).
 - **대시보드 read 가드**: DB 없음/락 시 "파이프라인 먼저 실행" 빈 상태. 실행 순서 = 파이프라인 → 대시보드(문서화).
-- **고정 사전설정 명령**(devex 제공): `.venv/bin/pip install duckdb pandas streamlit plotly statsmodels` → `pip freeze > requirements.txt` → .gitignore 보강 → scaffold → 실제 fixture 복사(`260612_office_backup/206/beef/striploin/251016` 10파일=1pos) → LED표 박제 → DB init 라운드트립 → model 로드 확인.
+- **고정 사전설정 명령**(devex 제공): `.venv/bin/pip install duckdb pandas streamlit plotly` (**§9: statsmodels 제외**) → `pip freeze > requirements.txt` → .gitignore 보강 → scaffold → 실제 fixture 복사(`260612_office_backup/206/beef/striploin/251016` 10파일=1pos) + dedup-seam 합성 fixture → LED표 **16행** 박제 → DB init 라운드트립 → model 로드 확인.
 
 ## 6. 디자인/UX — 비교 가독성 (적용 지침)
 
@@ -68,7 +68,7 @@
 - hero 비주얼: **3분할 + 공유 범례 + 동일 누적바 + agreement 델타**(어디/얼마나/일치여부를 per-class %로 동시 전달).
 
 ## 7. 결정 (확정)
-- [x] **하이브리드 채택** — 도넨스 cascade 통일 + **"ONNX ROI vs Rule ROI"** 정직 개명(P0), 세그멘테이션 오버레이 hero, **F-B5는 P1 스트레치**. 통일 cascade = 라이브 beef.
+- [x] **하이브리드 채택** — 도넨스 cascade 통일(**라이브 beef, 직접 read 확정**) + **"ONNX ROI vs Rule ROI"** 정직 개명(P0), 세그멘테이션 오버레이 + ROI-diff hero. **F-B5 컷**(사용자 제약: AI=ROI 전용). [2차 리뷰 §9]
 - [x] Codex 교차검증 = 집합 수렴(§0, §8).
 - [ ] C++ 오라클: 정적 추출로 대체 확정(권고) vs 시간 남으면 1건 시도.
 
@@ -78,16 +78,40 @@
 
 **수렴(양측 동일)**: 약한 비교/오버스테이트, 앵커 y-major, Phase-2 과소·실질 직렬→Phase-0 end-to-end 1건 먼저, deps 미설치, C++ 오라클 비현실(Qt GUI·capture CLI 없음 `main.cc:21`)→정적추출, dedup, 클래스 인코딩 Phase-0 확정.
 
-**발산 1건 — 약한 비교의 해결책 (= 사용자 A/B 결정)**:
-- **CEO(A)**: F-B5 학습형 도넨스로 도넨스를 다르게 → 산점도 퍼짐, wow.
-- **Codex(B)**: 도넨스를 동일 cascade로 통일하고 정직하게 **"ONNX ROI vs Rule ROI"로 개명** → 차이는 분할 품질(ROI), 오버레이로 가시.
-- **권고(하이브리드)**: **B를 P0로 확실 출하**(정직·실행가능, 세그멘테이션 hero) + 시간 남으면 **F-B5(A)를 P1 스트레치**. 메서드명 정직화.
+**발산 1건 — 약한 비교의 해결책 (해소됨: 사용자 제약, 2차 리뷰)**:
+- **CEO(A)**: F-B5 학습형 도넨스 → **REJECTED**(AI=ROI 전용 제약 위반 + 라벨 0개).
+- **Codex(B) 채택**: 도넨스 동일 cascade 통일 + **"ONNX ROI vs Rule ROI"** 개명 → 차이는 ROI 분할 품질, 오버레이·ROI-diff로 가시. **P0 출하**.
 
 **Codex 신규 must-fix (문서 반영)**:
 1. **ScoreResult에 오버레이 맵 부재** — Stream D는 roi_mask/class_map/도넨스맵 필요 → ScoreResult(또는 형제)에 렌더용 맵/경로 포함, Phase-0 동결(아니면 D가 A/B에 직렬 의존).
-2. **726-파일 동일 복사 트리 + 244 cross-format 충돌**, 실제 capture **3,044 그룹** → `capture_id`=device/meat/cut/date/posIdx 결정적, 복사 트리 collapse, band당 PNG 우선.
+2. **726-파일 동일 복사 트리 + 244 cross-format 충돌**, 실제 capture **~2.8k–3.0k 그룹**(§9 정정: 3,044는 한 그루핑 추정치, 디스크 재검증 2,817~2,961 → 스캔 시 동적 계산) → `capture_id`=device/meat/cut/date/posIdx 결정적, 복사 트리 collapse, band당 PNG 우선.
 3. **cascade 변형 불일치** — 라이브 AI는 `beef_strip_loin/ComponentRecognizer_BeefStripLoin_CharBroiler`, 조건문 SPEC은 `_america` 포팅. **옵션 B면 양쪽 동일(라이브 beef) cascade**. 빌드 전 라이브 파일 직접 read 필수.
 4. **3분할(P0)인데 capture 선택(F-D3) P1** 모순 → 최소 선택 **P0** 승격.
 - 참고: 라이브 recognizer가 8-slot 배열에 index 8 기입(`live recognizer:31`) — 소스 버그, 포팅 시 방어.
 
-**판정**: 집합 수렴, 처방 1건만 발산(A/B) → 사용자 결정. 권고 = 하이브리드(B 출하 + F-B5 스트레치) & 정직 개명.
+**판정**: 집합 수렴, 처방 1건 발산(A/B) → **2차 리뷰에서 사용자 제약으로 해소**(B 출하, A 컷). 정직 개명 유지.
+
+---
+
+## 9. 2차 리뷰 — ROI-only 제약 재검증 (Claude 5-lens + Codex xhigh, 완전 수렴)
+
+사용자 제약 재확인: **AI = ROI/세그멘테이션 전용, 도넨스 컴포넌트 = 규칙(그대로), `Merge_Main` 없음**. 라이브 sensing 흐름 `getOnnxInferenceOutput`(`BaseRobotTaskSensing.h:93`, `mainwindow.cpp:1747`) 직접 검증. Claude 5-agent 소스 검증 + 5-lens(eng/ceo/devex/design/code) + Codex(xhigh)가 **블로커 집합·랭킹·제품전략·실현가능성에 완전 수렴**(Codex가 라이브 cascade 임계를 **독립적으로 문자 단위 동일** 도출 — 포팅 리스크 사실상 소거).
+
+**확정 수정(소스 직접 read, 본 docs 반영 완료)**:
+1. **F-B5 컷** — 제약 위반 + 라벨 0개. near-tie는 세그멘테이션 + ROI-diff hero로.
+2. **도넨스 cascade = 라이브 beef 그대로**(`ComponentRecognizer_BeefStripLoin_CharBroiler.h:112-158`). 기존 `SCORING_SPEC §3`은 `_america` 오포팅 → 교체(게이트 410/440, 살코기+지방 2 proper분기, 460·800 미사용).
+3. **rule-ROI = 라이브 `recognizeROI` seed + 모폴로지 근사**(실 12-stage GridBasedAlgorithm은 비범위). "근사" 라벨 필수, 트레이존 크롭만이라도 포팅(서사 역전 방지).
+4. **band_count 가변(8–16)** — "beef=10" 반증. capture 수 ~2.8k–3.0k 동적 계산.
+5. **LED 16행 전수** 박제(`src/model/PropertiesDatabase.h:113-128`).
+
+**신규 발견(Phase 0/구현 반영 대상)**:
+- **NOT_DONE 버킷**: proper+slightly+burnt < 100 → 커널/ScoreResult/스택바 4-way(+`pct_not_done`).
+- **누락밴드→0 게이트 함정**: 410/440 누락 0대체 시 게이트 전 픽셀 통과 → 점수 폭증. 스킵/에러.
+- **per-class % 델타 ≈ 0 위험**: hero = ROI 면적/IoU 델타 + ROI-diff 시각화(점수 델타 보조).
+- **per-menu offset 채널**: beef 3채널 vs **pork burnt만**(`...PorkBelly_Charcoal...:408-415`). 커널이 정책 read.
+- **maillard 3변형 상이**(AI 0.7/1.5/3.0 · 라이브beef 1.0/1.0/3.0 · _america 0.5/1.0/4.0) → 비교축 per-class %, 단일 동일식(0.7/1.5/3.0).
+- **faithful_triple_offset 제거**(MVP 단일 offset).
+- **HSV 휴램프 vs 평면 hex**: 라이브 `makeHueOfHSV`는 휴램프, OnnxVisualization은 평면 → 가독성용 평면 hex 채택(표현 선택 명기).
+- **DevEx**: statsmodels 드롭(소비자 없음), all-JPEG fixture 보강(dedup seam), Phase-0 정확성 스모크, Stream A 임계경로 재배분.
+
+**실현가능성(양측 수렴)**: 90분 **viable**, 단 Phase 0 필수 — (a) 라이브 `.h` cascade 전사, (b) label 인코딩 확정, (c) end-to-end beef 정확성 스모크.

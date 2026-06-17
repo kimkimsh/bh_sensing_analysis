@@ -12,11 +12,11 @@
 - 설명: `data/` 트리를 재귀 스캔해 파일명을 파싱하고, 동일 `(device, meat, cut, date, posIdx)` 프레임을 **1 capture**로 묶는다.
 - 입력: `data/<backup>/<deviceId>/<meat>/<cut>/<YYMMDD>/*.png|jpeg`
 - 출력: `CaptureGroup` 목록(메타: device/meat/cut/menu/date/index/band_count/frame_dir)
-- AC: capture = `(meat,cut,date,posIdx)` 그룹; 각 capture **8–11 band**(beef=10), N capture = 파일수/band수. 고정 "44/11" 금지. `" (copy)"` 접미사 정상 처리. fixture=`260612_office_backup/206/beef/striploin/251016`(10파일=1pos).
+- AC: capture = `(device,meat,cut,date,posIdx)` 그룹; 각 capture **8–16 band 가변**(beef striploin도 날짜별 8~16, 일부 620 포함), `band_count`는 capture별 **동적 산출**. 고정 "beef=10"/"44/11" **금지**. `" (copy)"` 접미사 정상 처리 + 복사트리 collapse. fixture=`260612_office_backup/206/beef/striploin/251016`(10파일=1pos, all-JPEG).
 
 ### F-A2 — 스펙트럼 큐브 로딩 · **P0**
 - 설명: capture의 파장 프레임을 `(min,max,peak)` 키 dict로 lazy 로드(grayscale uint8). `bandByLed(ledId)` 접근 제공.
-- AC: PNG/JPEG 동일 band 충돌 시 **PNG 우선**(244건); `720`(led10 peak740 vs led9 peak730) **peak로 구분**; `999_999_999` 센티넬·희귀 band 드롭(band_count 미오염). `capture_id`=device/meat/cut/date/posIdx **결정적**, **동일 복사 트리(726파일) collapse**. 실제 ~**3,044 capture 그룹**.
+- AC: PNG/JPEG 동일 band 충돌 시 **PNG 우선**(244건); `720`(led10 peak740 vs led9 peak730) **peak로 구분**; `999_999_999` 센티넬·희귀 band 드롭(band_count 미오염). `capture_id`=device/meat/cut/date/posIdx **결정적**, **동일 복사 트리(726파일) collapse**. 실제 **~2.8k–3.0k capture 그룹**(스캔 시 결정적 계산 — 그루핑 정의에 따라 2,817~2,961 관측; **고정값 박제 금지**).
 
 ### F-A3 — 메뉴/날짜 인벤토리 · **P1**
 - 설명: 스캔 결과로 사용 가능한 **메뉴 목록**과 **날짜 범위**, capture 수를 집계해 대시보드 필터에 공급.
@@ -29,11 +29,11 @@
 ### F-B1 — Rule ROI(조건문) 점수 · **P0**
 - 설명: 순수 numpy 스펙트럼 임계 cascade로 ROI 산출 + 픽셀 도넨스 분류(번트/슬라이틀리/프로퍼) → `ScoreResult`.
 - 출력: `pct_proper/pct_slightly_burnt/pct_burnt(+raw)`, `cooking_score`, `maillard_score`, `grade`.
-- AC: beef striploin capture에서 0~100% 범위의 클래스별 % 및 grade 산출, ROI=0 가드 동작.
+- AC: beef striploin capture에서 클래스별 %(proper/slightly/burnt **+ not_done**, 합=100) 및 grade 산출; ROI=0 가드; **게이트 밴드(410/440) 누락 시 0 대체 금지(스킵/에러)** — 0이면 라이브 게이트가 전 픽셀 통과해 점수 폭증.
 
 ### F-B2 — ONNX ROI(AI) 점수 · **P0**
 - 설명: meatSegNet(5채널)로 고기 인스턴스/ROI 분할 → 인스턴스별 도넨스 → `ScoreResult`(+per-instance).
-- AC: 실제 meatSegNet 추론으로 label_map(0..4) 생성, `>=500px` 인스턴스만 채택, beef capture에서 점수 산출.
+- AC: 실제 meatSegNet 추론으로 label_map 생성, `>=500px` 인스턴스만 채택, **정수↔클래스 인코딩은 Phase-0에서 실제 마스크로 확정**(beef-only 글로벌이 의존), beef capture에서 점수 산출.
 
 ### F-B3 — 공유 출력 계약 보장 · **P0**
 - 설명: 두 방식 모두 동일 `ScoreResult` 필드/후처리(`DonenessKernel`)를 거쳐 **사과 대 사과** 비교 가능.
@@ -43,25 +43,25 @@
 - 설명: 메뉴별 `{score_field, ladder}` 데이터구동 등급(grade 0=완료) 부여.
 - AC: 시드된 메뉴(beef/chicken/pork)에서 grade·grade_label 출력; 미정의 메뉴는 기본 사다리 + "근사" 표기.
 
-### F-B5 — 학습형 AI 도넨스 분류기 · **P1 (near-tie 회피 권고 승격, 사용자 확인)**
-- 설명: 9 파장 특징으로 소형 픽셀 분류기 학습 → 규칙 임계 대체 "AI 도넨스". 도넨스 자체가 다른 진짜 ML-vs-규칙 비교.
-- AC: 토글로 활성화 시 조건문과 **시각적으로 다른** 도넨스 오버레이/점수 생성.
+### F-B5 — 학습형 AI 도넨스 분류기 · ~~P1~~ **컷 (OUT OF SCOPE)**
+- **컷 사유**: 사용자 제약 — AI는 ROI/세그멘테이션 전용, 도넨스 컴포넌트는 규칙(그대로 포팅). 학습형 분류기 = AI 컴포넌트 분석이라 제약 위반. 또한 라벨/마스크 **0개**라 학습 자체 불가.
+- near-tie 회피는 **세그멘테이션 오버레이 + ROI-diff 가시화 hero**(F-C1)로 대체.
 
 ---
 
 ## C. 비교 (AI ↔ 조건문)
 
-### F-C1 — 3분할 시각 비교 · **P0**
-- 설명: 한 capture에 대해 **원본(ch3/led10 모노) | AI 오버레이 | 조건문 오버레이**를 나란히 표시.
-- AC: `st.columns(3)`로 동일 해상도 3 이미지 + 캡션. 도넨스 색(번트>슬라이틀리>프로퍼) 일관.
+### F-C1 — ROI-diff hero + 3분할 시각 비교 · **P0**
+- 설명: **[HERO]** mono(ch3/led10) 배경 + **ONNX-ROI 윤곽 vs Rule-ROI 윤곽 + 대칭차(한쪽에만 포함된 픽셀) 음영** — 두 방식 차이는 ROI 경계뿐이므로 경계를 직접 가시화. 그 아래 **원본 | AI 오버레이 | Rule 오버레이** 3분할.
+- AC: ROI-diff 1뷰 + **ROI 면적/IoU** 캡션이 스크롤 없이 최상단. 3분할은 `st.columns(3)` 동일 해상도 + **공유 범례 1개**. 오버레이는 (roi_mask, class_map, mono)의 **순수 함수**(방식별 분기 금지 → 차이는 ROI뿐, 데모 공정성 자명). 도넨스 색(번트>슬라이틀리>프로퍼) 일관. **팔레트는 평면 hex(OnnxVisualization 정본)** — 라이브 `makeHueOfHSV` 휴-램프 대신 가독성용 표현 선택임을 명기(엄밀히 "as-is" 아님).
 
-### F-C2 — 클래스별 % 델타 · **P0**
-- 설명: 같은 capture의 두 방식 `pct_proper/slightly/burnt` 차이를 metric(델타)로 표시.
-- AC: 비교축은 **항상 per-class %**, `maillard_score` 공동플롯 **금지**(스케일 상이). 각 클래스 % + (AI−조건문) 델타 + agreement(MAE pts). 3분할은 공유 범례 1개 + 패널별 동일 100% 누적바.
+### F-C2 — ROI 면적 델타 + 클래스별 % 델타 · **P0**
+- 설명: 같은 capture의 **각 방식 ROI px / 면적·IoU 델타**(주축) + `pct_not_done/proper/slightly/burnt`(4-way, 합=100) 차이.
+- AC: **주 비교축 = ROI 면적/IoU 델타**(near-tie라 per-class %는 보조). per-class % 옆에 **각 방식 pixels_roi 표기**(분모-주도 델타 vs 분류-주도 델타 구분). `maillard_score` 공동플롯 **금지**(스케일 상이). 패널별 동일 **4-way 누적바**(not_done 포함). agreement = MAE(pts) + ROI-IoU.
 
-### F-C3 — AI vs 조건문 산점도 · **P1**
-- 설명: beef striploin capture들을 (AI 점수, 조건문 점수) 산점도로 — 일치/불일치 한눈에.
-- AC: 축 = 사용자 선택 클래스 %(라디오, 기본 burnt), y=x 기준선 + MAE(pts) 대형 캡션, 점은 signed Δ 발산색. `maillard_score` 금지.
+### F-C3 — AI vs Rule 산점도 · **P1 (보조, fold 아래)**
+- 설명: beef striploin capture들을 (ONNX-ROI %, Rule-ROI %) 산점도로. **near-tie라 y=x에 붙음** → hero 아님, 보조 증거.
+- AC: 축 = 선택 클래스 %(라디오, 기본 burnt), y=x 기준선 + MAE(pts) 캡션, **점 색/크기 = ROI-IoU**(퍼짐이 분할 불일치에서 옴을 가시). `maillard_score` 금지. fold 아래 배치.
 
 ### F-C4 — Bland-Altman 일치도(스트레치) · **P2**
 - 설명: 두 방식의 평균 대비 차이 플롯으로 체계적 편향 확인(matplotlib).
@@ -96,7 +96,7 @@
 
 ### F-E2 — 파이프라인 CLI · **P0**
 - 설명: `run_pipeline.py`로 scan→두 scorer→write+오버레이 캐시. `--limit`(스모크), `--methods`(ai|conditional|both).
-- AC: `--limit N`이 N capture만 처리해 DB를 채움; 전수 실행 시 ~3,060 capture 처리(분 단위).
+- AC: `--limit N`이 N capture만 처리해 DB를 채움; 전수 실행 시 ~2.8k–3.0k capture 처리(분 단위, 스캔 시 결정적 계산).
 
 ### F-E3 — 대시보드 기동 · **P0**
 - 설명: `streamlit run app/dashboard.py`(headless)로 read_only DB를 읽어 D/C 기능 제공.
@@ -115,5 +115,5 @@
 
 ## 우선순위 요약
 - **P0(데모 필수)**: F-A1, F-A2, F-B1, F-B2, F-B3, F-C1, F-C2, F-D1, F-D2, F-E1, F-E2, F-E3
-- **P1**: F-A3, F-B4, **F-B5(near-tie 회피 권고)**, F-C3, F-D3
+- **P1**: F-A3, F-B4, F-C3, F-D3  (~~F-B5~~ **컷 — OUT OF SCOPE**: AI는 ROI 전용)
 - **P2(스트레치)**: F-C4, F-D4

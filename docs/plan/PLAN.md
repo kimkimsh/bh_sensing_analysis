@@ -21,17 +21,15 @@
 (보유: `meatSegNet_best.onnx` + 외부가중치 `.onnx.data`, `exlight_remover_e32_int8.onnx`, 그리고 ORT 네이티브 런타임 `onnxruntime-linux-x64-1.23.2`).
 사용자가 지목한 `onnxruntime-linux-x64-1.23.2`는 **모델이 아니라 ONNX Runtime 엔진**(`libonnxruntime.so`)이다.
 
-**확정(하이브리드)**: 도넨스 cascade를 **양쪽 통일**하고 정직하게 **"ONNX ROI vs Rule ROI"** 로 명명(차이 = 분할 품질). AI 세그멘테이션 오버레이가 **hero**. F-B5(학습형 도넨스)는 **P1 스트레치**.
+**확정**: 도넨스 cascade를 **양쪽 통일**(라이브 beef 규칙, `SCORING_SPEC §3`)하고 정직하게 **"ONNX ROI vs Rule ROI"** 로 명명(차이 = **ROI 분할 품질뿐**). AI는 ROI/세그멘테이션 전용·도넨스는 규칙 → **학습형 도넨스(구 F-B5)는 사용자 제약상 컷**(라벨 0개라 학습 불가이기도). **세그멘테이션 오버레이 + ROI 불일치 가시화가 hero**(near-tie라 점수 델타는 보조).
 
 | 방식 | 파이프라인 | ONNX 사용 |
 |------|-----------|-----------|
 | **ONNX ROI** (AI) | meatSegNet(ONNX, 5채널) → 고기 인스턴스/ROI 분할 → ROI 내부 도넨스(**통일 cascade**) → 점수 | ✅ meatSegNet |
 | **Rule ROI** (조건문) | 규칙기반 ROI(모폴로지 근사) → **동일 cascade** → 점수 | ❌ 순수 numpy |
 
-- 두 방식은 **동일한 출력 계약(`ScoreResult`)** 을 생성한다. 차이는 **ROI 산출 주체**(ONNX 분할 vs 규칙)와,
-  (스트레치 시) 픽셀 분류기 종류뿐. → **사과 대 사과 비교**가 성립.
+- 두 방식은 **동일한 출력 계약(`ScoreResult`)** 을 생성한다. 차이는 **ROI 산출 주체뿐**(ONNX 분할 vs 규칙 근사) — 도넨스 cascade는 동일. → **사과 대 사과 비교**가 성립.
 - **비교 데모는 beef striploin에 집중**한다(이유: §8 리스크). 다른 메뉴는 조건문 위주 + 클래스별 % 표시.
-- **F-B5 (P1 스트레치)**: 9개 파장 특징으로 소형 픽셀 분류기(MLP/로지스틱) 학습 → AI 도넨스 자체를 규칙과 다르게(진짜 ML-vs-규칙). 원본 도넨스 모델 입수 시 그 자리에 교체.
 
 ### 비범위 (v1 컷 — §8)
 exlight 복원, 전 메뉴 충실 포팅, 픽셀정확 ROI 패리티(GridBasedAlgorithm), per-instance 드릴다운, 오버레이 장식(범례/박스/그리드).
@@ -50,7 +48,7 @@ exlight 복원, 전 메뉴 충실 포팅, 픽셀정확 ROI 패리티(GridBasedAl
 | UI | **Streamlit** | `st.columns(3)` 3분할 비교·`@st.cache_data` 메모이즈·사이드바 필터가 공짜 |
 | 차트 | **Plotly Express** (+ matplotlib는 Bland-Altman만) | 라인(날짜)·그룹바(메뉴)·산점도(AI vs 조건문) |
 
-검증된 환경(직접 확인): `.venv`에 onnxruntime/onnx/numpy/cv2 설치 완료. **남은 설치**: `duckdb pandas streamlit plotly statsmodels`.
+검증된 환경(직접 확인): `.venv`에 onnxruntime/onnx/numpy/cv2 설치 완료. **남은 설치**: `duckdb pandas streamlit plotly` (statsmodels 제외 — §7-1·§8).
 
 ---
 
@@ -58,7 +56,7 @@ exlight 복원, 전 메뉴 충실 포팅, 픽셀정확 ROI 패리티(GridBasedAl
 
 - **데이터셋**: `data/<backup>/<deviceId 206|250>/<meat>/<cut>/<YYMMDD>/<frame>.png|jpeg`.
   총 **~33,700 프레임**, grayscale 480×640 uint8. **라벨/마스크/정답 파일 0개**(정답 없음 → §8 충실도 게이트 필요).
-- **1 capture = 동일 `(meat,cut,date,posIdx)` 그룹**의 파장 스택. **band 수 메뉴별 상이**(beef striploin=10, 620 없음; pork=11). 날짜 폴더 파일수 가변(10/20/30/90/160 = position수×band수). 전체 ~33.7k 프레임.
+- **1 capture = 동일 `(device,meat,cut,date,posIdx)` 그룹**의 파장 스택. **band 수 capture별 가변(8–16)** — beef striploin도 날짜별 8~16밴드(일부 capture는 620_630_625 포함). `band_count`는 **capture별 동적 산출**(고정값/메뉴별 고정 금지). 전체 ~33.7k 프레임 ≈ **~2.8k–3.0k capture**(스캔 시 결정적 계산; copy-tree collapse·cross-format 244 dedup 반영).
 - **파일명 문법**: `ver2_charbroiler_calibrated_<meat>_<cut>_<YYMMDD>_<posIdx>_<wMin>_<wMax>_<wPeak>.<ext>`.
   band 키는 **(min,max,peak) 튜플**(peak 충돌: `720_740_740`=led10 vs `720_750_730`=led9).
 - **파장↔LED**: 410=led0, 440=led1, 460=led2, 520=led4, 585=led5, 650=led8, 720=led10, 800=led11, 930=led14 (+pork 620, +840=led12).
@@ -155,9 +153,12 @@ CREATE TABLE instances ( capture_id BIGINT, method VARCHAR, instance_id INTEGER,
 > 구현은 dynamic **Workflow**로: **Phase 0**(1 agent, 계약 동결) → **Phase 1**(`parallel()`로 4 stream 동시) → **Phase 2**(1 agent, 통합+데모).
 > 모든 stream은 Phase 0의 **동결 인터페이스 + 커밋된 stub/fixture**에만 의존 → 진짜 병렬(서로 대기 없음).
 
-### PHASE 0 — 계약 동결 (0–8분, BLOCKING, 1 agent)
-산출(동결): `scoring/result.py`(ScoreResult), `scoring/base.py`(Scorer ABC), `ingest/types.py`(CaptureGroup/SpectralCube), `bands.py`(LedBandMap + 메뉴 규칙 스켈레톤), `persist/schema.sql` + repo stub, `tests/fixtures/`(beef 1 + pork 1 capture 복사), 핀 고정 `requirements.txt`.
-또한 **DonenessKernel stub**(시그니처만)을 커밋 → Stream B가 A를 기다리지 않음.
+### PHASE 0 — 계약 동결 (0–10분, BLOCKING, 1 agent)
+산출(동결): `scoring/result.py`(ScoreResult **+pct_not_done**), `scoring/base.py`(Scorer ABC), `ingest/types.py`(CaptureGroup/SpectralCube), `bands.py`(LedBandMap **16행** + 메뉴 규칙·**offset 채널** 스켈레톤), `persist/schema.sql` + repo stub, `tests/fixtures/`(beef 1 + **dedup-seam 합성 1**), 핀 고정 `requirements.txt`(**statsmodels 제외**).
+**BLOCKING 추가(코딩 전 차단)**:
+1. **DonenessKernel을 라이브 `.h`에서 직접 전사** — `beef_strip_loin/ComponentRecognizer_BeefStripLoin_CharBroiler.h:112-158`의 5분기 cascade(게이트 + 살코기/지방 2 proper분기)와 **NOT_DONE 버킷**을 **실제 함수로 동결**(stub 아님; §3가 아니라 `.h`에서). 합성 (roi_mask,class_map) 골든 단위테스트(NOT_DONE 포함) 통과가 게이트.
+2. **label_map 클래스 인코딩 확정**: beef fixture 1장 실제 meatSegNet 추론 → 정수↔클래스 맵 read → `result.py` 상수 동결(beef-only 글로벌이 의존). 로드 ~0.36s, 2분.
+3. **동일 입력 대칭성 테스트**: 동일 (roi_mask,class_map)를 두 scorer 글로벌 경로에 넣어 pct가 **bit-동일** assert(가짜 델타 차단).
 
 ### PHASE 1 — 4 독립 스트림 (8–70분, 병렬 subagent burst)
 디스패치 모드: **단일턴 병렬 subagent**(교차턴 상태/실시간 가시성 불필요 → 팀원보다 저렴). `worktree` 격리로 파일 충돌 방지.
@@ -169,12 +170,13 @@ CREATE TABLE instances ( capture_id BIGINT, method VARCHAR, instance_id INTEGER,
 | **C** 영속+집계 (~35m, 조기완료) | DuckDB writer + 집계쿼리 | `persist/repository.py`, `persist/queries.py` | `ScoreRepository`, `AggregationQueries` |
 | **D** 시각화+Streamlit (~55m) | 오버레이 렌더러 + 차트 + 대시보드 셸 | `viz/overlay.py`, `viz/charts.py`, `app/dashboard.py` | `render_overlay`, `build_charts`, dashboard |
 
-각 stream은 fixture/synthetic으로 **오프라인 테스트**(A·B는 실제 fixture, C·D는 합성 행). B의 커널 호출은 Phase 0 stub로 충족.
+각 stream은 fixture/synthetic으로 **오프라인 테스트**(A·B는 실제 fixture, C·D는 합성 행). B의 커널 호출은 Phase 0의 **실제 DonenessKernel**로 충족.
+> **재배분(F-B5 컷 반영)**: Stream A 과중(스캐너+큐브+커널+조건문+rule-ROI+등급), B는 경량화(세그멘테이션 후처리 + 동일 커널 호출)되어 **A가 임계경로**. `grades.py`(F-B4,P1)·rule-ROI 모폴로지는 조기완료 C/B 후미로 이동. A의 **커널+라이브 cascade는 Phase-0.5 마이크로게이트**(B·smoke·C 핸드오프가 모두 의존).
 
 ### PHASE 2 — 통합 + 데모 (70–90분, 1 agent)
 `cli/run_pipeline.py` 배선(scan→두 scorer→write+오버레이 캐시, `--limit/--methods`) → **`--limit` beef/striploin+pork/belly 스모크**로 `scores.duckdb` 채우고 오버레이 1쌍 육안 확인 → seam 버그(커널 경계 dtype, band 누락 fallback) 수정 → 대시보드 headless 기동, 차트/3분할/비교 확인 → README.
 
-> ⚠️ Phase 2 리스크(크리틱): 통합자 1명·20분·미검증 seam 4개. **완화**: Phase 0에서 fixture/stub로 seam을 최대한 당겨 테스트, Phase 1 각 stream이 자기 fixture 테스트 통과를 종료조건으로.
+> ⚠️ Phase 2 리스크(크리틱): 통합자 1명·20분·미검증 seam. **완화**: Phase 0 트레이서불릿(실제 beef fixture→두 scorer **실제 커널**→DuckDB write→read_only→by_menu→오버레이 PNG)을 8분차에; **추가로 정확성 스모크**(실제 커널이 meatSegNet ROI와 rule ROI 양쪽에서 pct_burnt가 **다르고** NaN/0 아님 assert)를 **Stream A 종료조건**으로. Phase 1 각 stream이 자기 fixture 테스트 통과를 종료조건으로.
 
 ---
 
@@ -185,12 +187,12 @@ CREATE TABLE instances ( capture_id BIGINT, method VARCHAR, instance_id INTEGER,
 - meatSegNet 로드 0.36s, IO=`input[ ,5,480,640]`→`preds[ ,6300,41]`,`protos[ ,32,120,160]`(외부 `.onnx.data` 자동 해석).
 
 **남은 단계**
-1. DB/UI 설치: `.venv/bin/pip install "duckdb>=1.1" "pandas>=2.2" "streamlit>=1.40" "plotly>=5.24" "statsmodels>=0.14"`
+1. DB/UI 설치: `.venv/bin/pip install "duckdb>=1.1" "pandas>=2.2" "streamlit>=1.40" "plotly>=5.24"` (**statsmodels 제외** — F-B5 컷으로 소비자 없음; y=x 기준선+MAE 캡션엔 불필요)
 2. `pip freeze > requirements.txt`
 3. 디렉토리 스캐폴드(위 트리) + 각 패키지 `__init__.py`. (`data/`,`ai_model/`,`.venv/`는 .gitignore — 유지)
-4. fixtures: beef 1 + pork 1 capture를 경로 구조 유지하여 `tests/fixtures/`로 복사(스캐너 regex 매칭 보존).
+4. fixtures: beef 1 capture(`260612_office_backup/206/beef/striploin/251016`, 10밴드 JPEG=AI 5ch 게이트 가능) **+ dedup-seam 합성 capture**(PNG+JPEG 동일밴드 쌍 · `999_999_999` 센티넬 · ` (copy)` 트리)를 경로 구조 유지로 `tests/fixtures/`에 → PNG우선/센티넬드롭/복사트리 collapse를 8분 스모크가 **실제로** 커버(beef fixture 단독은 all-JPEG·단일pos라 이 seam 미검증).
 5. DB init 스모크: `scores.duckdb` 생성 → `schema.sql` 적용 → 합성 1행 insert/select → `read_only` 재오픈 확인.
-6. **LED↔band 정본표 확정**: `PropertiesDatabase.h`/LED 상수에서 ledId↔(min,max,peak) 표를 추출해 `bands.py`에 박제(스캐너·세그멘터 공용).
+6. **LED↔band 정본표 확정**: `src/model/PropertiesDatabase.h:113-128`에서 ledId↔(min,max,peak) **16행 전수**를 `bands.py`에 박제. 라이브 cascade가 읽는 9밴드(410/440/520=led4/585/650/720=led10/930 + 로드되나 미사용 460/800) 명시 — 440은 원본 OOB 슬롯이므로 키 접근으로 정상 포함.
 7. **충실도 대조(P2로 강등)**: C++ 바이너리는 Qt/하드웨어 의존 UI라 90분 내 헤드리스 채점 덤프 비현실적 → **소스 정적 추출**(스코어 상수·LED표, 이미 확보; `PropertiesDatabase.h:113-125`)로 대조하고 편차 문서화. 시간 남으면 바이너리 1건 시도.
 8. `onnxruntime-linux-x64-1.23.2/`는 .gitignore에 추가(22MB 다운로드 산출물, Python은 pip 휠 사용).
 
@@ -202,15 +204,19 @@ CREATE TABLE instances ( capture_id BIGINT, method VARCHAR, instance_id INTEGER,
 - **정답 없음** → 수치 정확성 게이트 불가. **완화**: §7-7 C++ 오라클 1–2 capture.
 - **AI 글로벌=BEEF만** → 비-beef AI 점수 0. **완화**: 비교 데모를 **beef striploin**으로, 또는 메뉴별 글로벌 재계산/주석.
 - **조건문 충실도는 beef striploin만** 보장(pork는 파장/deadband 상이). → 메뉴별 규칙테이블 외부화, 미정의 메뉴는 "근사" 라벨.
-- **합성점수 스케일 상이**(0.7/1.5/3.0 vs 0.5/1.0/4.0) → 기본 비교는 클래스별 %.
+- **합성점수 스케일 상이**(라이브 AI 0.7/1.5/3.0 · 라이브 beef 1.0/1.0/3.0 · _america 0.5/1.0/4.0, 셋 상이) → 비교축은 **클래스별 %**, maillard는 단일방식 뷰 한정, 양 방식 동일식 사용.
+- **near-tie(최상위 데모 리스크)**: cascade 통일 + F-B5 컷 → 차이는 ROI뿐. 게이트 탈락 픽셀이 NOT_DONE으로 대량 잔류해 per-class % 델타가 **거의 0**일 수 있음. **완화**: hero를 per-class %가 아니라 **ROI 면적/IoU 델타 + ROI-diff 시각화**(ONNX윤곽 vs Rule윤곽 + 대칭차 음영)로. 점수는 "같은 규칙·더 깨끗한 ROI = 무튜닝 AI 도입" 보조 서사.
+- **NOT_DONE 버킷**: proper+slightly+burnt 합 < 100(게이트 탈락). 커널·ScoreResult·스택바는 **4-way**(not_done 포함). 미반영 시 분모/스택바 왜곡.
+- **누락밴드→0 게이트 함정**: 410/440 누락을 0으로 채우면 rule 게이트 `v410<=7|v440<=7`가 전 픽셀 통과 → 점수 폭증. 게이트 밴드 누락 시 스킵/에러(0 대체 금지).
 - **PNG/JPEG 동일 band 충돌**, **720nm(led10 peak740 vs led9 peak730) 모호**, **999_999_999 센티넬/희귀 band** → 큐브 그룹핑에서 **PNG 우선 + (min,max,peak) 키 + 센티넬 드롭**.
-- **3중 offset**(C++는 -3/-1.5/-5를 3회 적용) → v1은 1회 적용+편차 문서화, `faithful_triple_offset` 플래그로 선택 복원.
+- **offset 적용**(C++ -3/-1.5/-5; 단 최종 글로벌 출력은 픽셀카운트 재계산으로 **1회**, `OnnxInferenceOutput.h:88-90`) → 커널도 1회. `faithful_triple_offset` 플래그는 **MVP 제거**(Codex). per-menu 채널 정책(beef 3채널/pork burnt만)은 §SCORING_SPEC §4.
 - **YOLO-seg 앵커 순서 = y-major**(stride 8→16→32, 각 stride 내 for y: for x; =6300). 순서 틀리면 마스크 무성 깨짐 → Stream B는 "실행됨"이 아닌 **실제추론 비어있지않은 mask**로 게이트.
 - **ROI 패리티**(GridBasedAlgorithm region-grow를 모폴로지로 근사) → 조건문을 "규칙 근사"로 표기.
 - **정규화 함정**: 입력은 grayscale uint8 → **/255만**(ImageNet mean/std 금지).
 - **label 인코딩 모순**(CLASS_NAMES vs 라우팅 주석) → 실제 샘플 마스크로 `palette[label-1]` 순서 확인.
 
 **v1 컷 (시간 부족 시 순서대로 버림)**
+0. **학습형 AI 도넨스(구 F-B5) — OUT OF SCOPE**: AI는 ROI 전용이라는 사용자 제약 위반 + 라벨/마스크 0개라 애초에 학습 불가.
 1. exlight_remover (데이터는 calibrated — 빌드 자체 제외)
 2. 비-beef AI 점수 (조건문만), 비교 데모는 beef
 3. Bland-Altman (산점도로 대체)
@@ -218,21 +224,21 @@ CREATE TABLE instances ( capture_id BIGINT, method VARCHAR, instance_id INTEGER,
 5. 픽셀정확 ROI 패리티 (모폴로지 근사 유지, "충실" 주장 철회)
 6. lamb·롱테일 메뉴(t_bone/l_bone/Combo/galbi/ddeokgalbi/data) 스모크 제외
 7. 오버레이 장식(범례/박스/그리드)
-8. 3중 offset 플래그
+8. ~~3중 offset 플래그~~ → MVP 비범위(단일 offset 고정, `faithful_triple_offset` 제거 — Codex)
 
 ---
 
 ## 9. 성공 기준 (데모 정의)
 
-1. `cli/run_pipeline.py --limit N`이 beef/pork를 스캔해 `scores.duckdb`에 ai·conditional 양쪽 행을 기록한다.
-2. 대시보드에서 **날짜별**(라인) + **메뉴별**(그룹바) 점수 추이가 보인다.
-3. 한 capture에 대해 **원본 | AI 오버레이 | 조건문 오버레이** 3분할 + 클래스별 % **델타**가 보인다.
-4. **AI vs 조건문 산점도**(beef striploin)로 두 방식의 일치/불일치가 한눈에 보인다.
-5. 모든 충실도 편차가 문서화되어 있고(§8), 가능하면 C++ 오라클 1건과 수치 대조됨.
+1. `cli/run_pipeline.py --limit N`이 beef를 스캔해 `scores.duckdb`에 ai·conditional 양쪽 행을 기록한다.
+2. **[HERO] ROI-diff 뷰**: 한 capture에 mono 배경 + **ONNX-ROI 윤곽 vs Rule-ROI 윤곽 + 대칭차 음영** + **ROI 면적/IoU 델타** 대형 캡션이 스크롤 없이 최상단.
+3. **원본 | AI 오버레이 | Rule 오버레이** 3분할(공유 범례 1개 · 동일 **4-way 누적바**[not_done 포함] · 각 ROI px 표기) + 클래스별 % 델타. 점수 델타는 "같은 cascade·다른 ROI" 보조 서사.
+4. (보조) AI vs Rule 산점도(beef striploin, 점 색/크기 = ROI-IoU) — near-tie라 fold 아래.
+5. 대시보드 **날짜별/메뉴별** 추이(맥락) + 모든 충실도 편차 문서화(§8); C++ 오라클은 소스 정적 대조로 대체(§7-7).
 
 ---
 
 ## 10. 다음 단계
-- [ ] 본 플랜 리뷰: `/plan-eng-review` `/plan-ceo-review` `/plan-devex-review` `/plan-design-review` `/office-hours` + Codex 교차검증(계획 단계 페어링).
-- [ ] 사전 설정 §7 잔여 실행.
-- [ ] dynamic Workflow(Phase 0→1→2)로 구현 착수.
+- [x] 본 플랜 리뷰: Claude 5-lens(eng/ceo/devex/design/code) + Codex(xhigh) 교차검증 — **완전 수렴**(ROI-only 제약 반영, F-B5 컷, 라이브 cascade 직접 read 확정).
+- [ ] 사전 설정 §7 잔여 실행(statsmodels 제외, dedup-seam fixture 추가, LED 16행).
+- [ ] dynamic Workflow(Phase 0→1→2)로 구현 착수. **Phase 0 BLOCKING**: 라이브 `.h` cascade 전사 + label 인코딩 확정 + 대칭성 테스트.
