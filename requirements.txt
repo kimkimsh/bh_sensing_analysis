@@ -1,0 +1,10 @@
+# bh_sensing_analysis — pinned runtime deps (NF-3 reproducibility).
+# matplotlib / statsmodels / Bland-Altman deps intentionally EXCLUDED (PLAN §8 cut #3).
+numpy==2.4.6
+onnx==1.21.0
+onnxruntime==1.26.0
+opencv-python-headless==4.13.0.92
+duckdb==1.5.3
+pandas==3.0.3
+streamlit==1.58.0
+plotly==6.8.0

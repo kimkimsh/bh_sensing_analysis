@@ -1,0 +1,31 @@
+# Streamlit theme — "Spectral Lab Instrument" (DESIGN_SPEC §5, Phase-0 FROZEN).
+# Theming is config-driven only; custom CSS / unsafe_allow_html theming is forbidden
+# (brittle across Streamlit versions). Self-hosted [[theme.fontFaces]] is also avoided:
+# it requires a server restart + a static/ dir. Named Google fonts only.
+# Requires Streamlit >= 1.50 for chartCategoricalColors / borderColor / baseRadius.
+
+[theme]
+base = "dark"
+primaryColor = "#E8602C"             # charbroiler ember accent (dark enough for white button text)
+backgroundColor = "#0B0E14"          # near-black canvas (pure black would kill grayscale-imaging contrast)
+secondaryBackgroundColor = "#151A23" # card / sidebar surface
+textColor = "#E6EAF0"
+linkColor = "#F2A07A"                # lighter ember, keeps the single-accent discipline
+borderColor = "#2A313D"
+showWidgetBorder = true
+baseRadius = "0.5rem"
+font = "Inter, sans-serif"
+headingFont = "Space Grotesk, sans-serif"
+codeFont = "JetBrains Mono, monospace"
+# CVD-safe doneness ramp, lightness-ordered (NOT_DONE / PROPER / SLIGHTLY / BURNT).
+# Every Plotly chart inherits this with zero per-figure color args. Must match
+# bh_score/viz/palette.py DONENESS_RAMP exactly.
+chartCategoricalColors = ["#9AA0AC", "#1B9E77", "#E69F00", "#7A2200"]
+
+[client]
+# Strip the developer toolbar for a clean demo (stable replacement for the old
+# CSS "#MainMenu {visibility:hidden}" hack).
+toolbarMode = "minimal"
+
+[server]
+headless = true

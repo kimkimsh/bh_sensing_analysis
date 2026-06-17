@@ -86,3 +86,6 @@ ai_model/
 onnxruntime-linux-x64-*/
 *.duckdb
 artifacts/
+
+# Test fixtures are derived from the gitignored proprietary data/ — kept local, not published
+tests/fixtures/
