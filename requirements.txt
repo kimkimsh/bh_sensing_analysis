@@ -1,4 +1,6 @@
-# bh_sensing_analysis — pinned runtime deps (NF-3 reproducibility).
+# bh_sensing_analysis — pip-installable mirror of the deps (NF-3 reproducibility).
+# SOURCE OF TRUTH is pyproject.toml + uv.lock; prefer `uv sync`. This file is a
+# fallback for pip-only environments and is kept in lockstep with pyproject.toml.
 # matplotlib / statsmodels / Bland-Altman deps intentionally EXCLUDED (PLAN §8 cut #3).
 numpy==2.4.6
 onnx==1.21.0

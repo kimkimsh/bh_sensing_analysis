@@ -1,0 +1,23 @@
+[project]
+name = "bh-sensing-analysis"
+version = "0.1.0"
+description = "Charbroiler multispectral meat-doneness scoring — ONNX ROI vs Rule ROI comparison dashboard"
+requires-python = ">=3.12,<3.13"
+# Versions pinned to the verified environment (meatSegNet ONNX load checked at ~0.36s).
+# matplotlib / statsmodels intentionally excluded (PLAN §8 cut #3). uv.lock is the
+# reproducible source of truth; requirements.txt is a pip-installable mirror.
+dependencies = [
+    "numpy==2.4.6",
+    "onnx==1.21.0",
+    "onnxruntime==1.26.0",
+    "opencv-python-headless==4.13.0.92",
+    "duckdb==1.5.3",
+    "pandas==3.0.3",
+    "streamlit==1.58.0",
+    "plotly==6.8.0",
+]
+
+[tool.uv]
+# Application, not a distributable library: manage the env from dependencies only,
+# do not build/install bh_score (it is imported from the repo root at run time).
+package = false

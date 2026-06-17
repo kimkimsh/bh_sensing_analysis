@@ -49,7 +49,7 @@ exlight 복원, 전 메뉴 충실 포팅, 픽셀정확 ROI 패리티(GridBasedAl
 | 차트 | **Plotly Express** | 라인(날짜)·그룹바(메뉴)·산점도(AI vs 조건문) — matplotlib/Bland-Altman 컷(§8) |
 | 디자인 | **config.toml 테마(CSS 금지)** | 다크 "Spectral Lab" + Ember 액센트 + CVD-safe 차트 팔레트 → `DESIGN_SPEC.md`(Phase-0 동결) |
 
-검증된 환경(직접 확인): `.venv`에 onnxruntime/onnx/numpy/cv2 설치 완료. **남은 설치**: `duckdb pandas streamlit plotly` (statsmodels 제외 — §7-1·§8).
+검증된 환경(직접 확인): **uv 관리 `.venv`(Python 3.12, `pyproject.toml` + `uv.lock`)**. 8개 deps 전부 핀 설치(numpy/onnx/onnxruntime/cv2/duckdb/pandas/streamlit 1.58/plotly), statsmodels·matplotlib 제외(§8). meatSegNet 로드 **0.36s 재검증**.
 
 ---
 
@@ -106,6 +106,8 @@ bh_sensing_analysis/
 │     ├─ palette.py       # [FROZEN] MASK(C++정본)/CHART(CVD-safe)/ROI_DIFF 3색공간 상수 — DESIGN_SPEC §3
 │     ├─ overlay.py       # OverlayRenderer: MASK 팔레트 포팅 + ROI-diff overlap-map hero(3영역+윤곽)
 │     └─ charts.py        # Plotly 라인·바·산점도 (chartCategoricalColors 상속, per-figure color 0)
+├─ pyproject.toml         # [FROZEN] uv 프로젝트(deps 핀, package=false) — uv.lock이 재현 source of truth
+├─ uv.lock / .python-version # uv 잠금파일 + Python 3.12 핀
 ├─ .streamlit/config.toml # [FROZEN] 다크 Ember 테마 + CVD chartCategoricalColors + toolbarMode (DESIGN_SPEC §5)
 ├─ cli/run_pipeline.py    # 오케스트레이터: scan → 두 scorer → write + 오버레이 캐시 (--limit/--methods)
 ├─ app/dashboard.py       # Streamlit reader (read_only DuckDB) — 단일-hero Compare/Trends/Explore 3탭
@@ -191,12 +193,12 @@ CREATE TABLE instances ( capture_id BIGINT, method VARCHAR, instance_id INTEGER,
 ## 7. 사전 설정 (지금 미리 가능 — 사용자 승인됨)
 
 **이미 검증(직접 확인, 재실행 불필요)**
-- `.venv`(Python 3.12.3) + onnxruntime 1.26 / onnx 1.21 / numpy 2.4 / cv2 4.13 설치 완료.
+- **uv 관리 `.venv`(Python 3.12, uv-managed CPython)** — `pyproject.toml`+`uv.lock`, 8 deps 핀 설치(onnxruntime 1.26 / onnx 1.21 / numpy 2.4.6 / cv2 4.13 / duckdb 1.5 / pandas 3.0 / streamlit 1.58 / plotly 6.8). 클린 env(무관 패키지 0).
 - meatSegNet 로드 0.36s, IO=`input[ ,5,480,640]`→`preds[ ,6300,41]`,`protos[ ,32,120,160]`(외부 `.onnx.data` 자동 해석).
 
 **남은 단계**
-1. DB/UI 설치: `.venv/bin/pip install "duckdb>=1.1" "pandas>=2.2" "streamlit>=1.40" "plotly>=5.24"` (**statsmodels 제외** — F-B5 컷으로 소비자 없음; y=x 기준선+MAE 캡션엔 불필요)
-2. `pip freeze > requirements.txt`
+1. **uv 환경 구성**: `pyproject.toml`(deps 핀, `[tool.uv] package=false`) → `uv sync`로 클린 `.venv`(Python 3.12) 생성. **검증됨**: 8 deps 설치 + meatSegNet 로드 **0.36s 재검증**(`input[,5,480,640]`→`preds[,6300,41]`,`protos[,32,120,160]`). (**statsmodels·matplotlib 제외** — §8)
+2. `uv.lock` 커밋(재현 source of truth) + `requirements.txt`는 pip-fallback 미러로 유지. 의존성 추가 시 `uv add <pkg>` → `uv.lock` 갱신.
 3. 디렉토리 스캐폴드(위 트리) + 각 패키지 `__init__.py`. (`data/`,`ai_model/`,`.venv/`는 .gitignore — 유지)
 4. fixtures: beef 1 capture(`260612_office_backup/206/beef/striploin/251016`, 10밴드 JPEG=AI 5ch 게이트 가능) **+ dedup-seam 합성 capture**(PNG+JPEG 동일밴드 쌍 · `999_999_999` 센티넬 · ` (copy)` 트리)를 경로 구조 유지로 `tests/fixtures/`에 → PNG우선/센티넬드롭/복사트리 collapse를 8분 스모크가 **실제로** 커버(beef fixture 단독은 all-JPEG·단일pos라 이 seam 미검증).
 5. DB init 스모크: `scores.duckdb` 생성 → `schema.sql` 적용 → 합성 1행 insert/select → `read_only` 재오픈 확인.
