@@ -1,8 +1,9 @@
 # FEATURES_SPEC — 기능 명세 (Functional Spec)
 
-> 이 도구가 **무엇을 하는가**(기능)만 정리한 문서. 알고리즘은 `SCORING_SPEC.md`, 구조/빌드는 `PLAN.md`.
+> 이 도구가 **무엇을 하는가**(기능)만 정리한 문서. 알고리즘은 `SCORING_SPEC.md`, 구조/빌드는 `PLAN.md`, **UX/UI·색·상태·데모 플로우는 `DESIGN_SPEC.md`**.
 > 우선순위: **P0** = MVP 데모 필수 / **P1** = 있으면 강함 / **P2** = 스트레치.
 > 각 기능은 ID·설명·입력·출력·수용기준(AC)으로 기술.
+> **횡단 원칙(정답 없음 → 승자 없음)**: 모든 비교 카피·지표는 "정확도"가 아니라 **"agreement(일치도)"**. "AI가 더 정확/낫다" 표현 금지(DESIGN_SPEC §11).
 
 ---
 
@@ -53,11 +54,11 @@
 
 ### F-C1 — ROI-diff hero + 3분할 시각 비교 · **P0**
 - 설명: **[HERO]** mono(ch3/led10) 배경 + **ONNX-ROI 윤곽 vs Rule-ROI 윤곽 + 대칭차(한쪽에만 포함된 픽셀) 음영** — 두 방식 차이는 ROI 경계뿐이므로 경계를 직접 가시화. 그 아래 **원본 | AI 오버레이 | Rule 오버레이** 3분할.
-- AC: ROI-diff 1뷰 + **ROI 면적/IoU** 캡션이 스크롤 없이 최상단. 3분할은 `st.columns(3)` 동일 해상도 + **공유 범례 1개**. 오버레이는 (roi_mask, class_map, mono)의 **순수 함수**(방식별 분기 금지 → 차이는 ROI뿐, 데모 공정성 자명). 도넨스 색(번트>슬라이틀리>프로퍼) 일관. **팔레트는 평면 hex(OnnxVisualization 정본)** — 라이브 `makeHueOfHSV` 휴-램프 대신 가독성용 표현 선택임을 명기(엄밀히 "as-is" 아님).
+- AC: **hero = 단일 PRIMARY** overlap-map (mono 배경 + Both-agree 그레이 α0.18 / ONNX-only cyan #56B4E9 실선윤곽 / Rule-only magenta #D55E00 점선·해치) — **ROI_DIFF 팔레트 전용, doneness 램프 사용 금지**(시청자가 "번트"와 "Rule-only"를 혼동 방지). 3칩 inline 범례 + 평문 IoU 캡션. **3분할은 hero 아님 → fold 아래 `st.expander("Per-panel detail", expanded=False)`**(`st.columns(3)` 동일 해상도 + 공유 범례 1개). 오버레이는 (roi_mask, class_map, mono)의 **순수 함수**(방식별 분기 금지). **3분할 오버레이만 MASK 정본 hex**(평면 hex, 라이브 `makeHueOfHSV` 휴-램프 대신 가독성용 — "as-is" 아님 명기). 상세 DESIGN_SPEC §7.
 
 ### F-C2 — ROI 면적 델타 + 클래스별 % 델타 · **P0**
 - 설명: 같은 capture의 **각 방식 ROI px / 면적·IoU 델타**(주축) + `pct_not_done/proper/slightly/burnt`(4-way, 합=100) 차이.
-- AC: **주 비교축 = ROI 면적/IoU 델타**(near-tie라 per-class %는 보조). per-class % 옆에 **각 방식 pixels_roi 표기**(분모-주도 델타 vs 분류-주도 델타 구분). `maillard_score` 공동플롯 **금지**(스케일 상이). 패널별 동일 **4-way 누적바**(not_done 포함). agreement = MAE(pts) + ROI-IoU.
+- AC: **KPI 행**(`st.metric`, JetBrains Mono): **IoU(헤드라인 + 평문 캡션 "IoU 0.93 — 두 방식이 거의 같은 영역; >0.90=강한 일치") · Dice(보조) · signed ROI-area delta px(near-tie에서도 비0)**. 모든 델타 **sign-only + 중립색**(green=good 금지, 정답 없음=승자 없음). 차트는 `chartCategoricalColors=DONENESS_RAMP` 상속(per-figure color 0), **NOT_DONE=그레이 후퇴**, `pattern_shape` + ND/P/S/B 칩, per-class % 옆 **절대 픽셀카운트**("+40% burnt"가 12px이면 작게 읽힘). `maillard_score` 공동플롯 **금지**(스케일 상이). 패널별 동일 **4-way 누적바**(not_done 포함). **MAE(pts)는 Explore 탭으로 강등**. agreement 수식·zero-union 가드 = `SCORING_SPEC §7`.
 
 ### F-C3 — AI vs Rule 산점도 · **P1 (보조, fold 아래)**
 - 설명: beef striploin capture들을 (ONNX-ROI %, Rule-ROI %) 산점도로. **near-tie라 y=x에 붙음** → hero 아님, 보조 증거.
@@ -86,6 +87,10 @@
 ### F-D4 — per-instance 드릴다운(옵션) · **P2**
 - 설명: AI 인스턴스별(class/픽셀/bbox/점수) 표. (v1 컷 후보)
 
+### F-D5 — Demo Mode (가이드 골든패스) · **P1**
+- 설명: 사이드바 `st.radio('Demo'|'Explore')`. **Demo**: 큐레이션 capture_id(`260612_office_backup/206/beef/striploin/251016`) 하드코딩·자동선택(2.8k행 테이블 헌트 skip), Compare hero 사전렌더(detail expander 접힘), 6-beat `DEMO_SCRIPT`를 번호 `st.status`/`st.info` 캡션으로 구동. **Explore**: 전체 필터 + capture 테이블.
+- AC: Demo 모드가 큐레이션 capture로 **테이블 인터랙션 0회**로 열린다. Phase-2 스모크가 해당 capture의 **비자명·서사일관 ROI 불일치**(near-perfect overlap 아님)를 검증. 애니메이션/온보딩 플로우 없음(스코프 가드). 상세 DESIGN_SPEC §10.
+
 ---
 
 ## E. 영속/실행 (Persistence & CLI)
@@ -100,7 +105,13 @@
 
 ### F-E3 — 대시보드 기동 · **P0**
 - 설명: `streamlit run app/dashboard.py`(headless)로 read_only DB를 읽어 D/C 기능 제공.
-- AC: 빈/부분 DB에서도 크래시 없이 기동, 필터·차트·비교 렌더.
+- AC: 빈/부분 DB에서도 크래시 없이 기동, 필터·차트·비교 렌더. **상태 매트릭스(DESIGN_SPEC §8)**:
+  - **FIRST_RUN/no-DB** (P0): `scores.duckdb` 없음/`count==0` → read_only open **전에** 파일존재+count 가드, `st.info("아직 점수 없음 — bash run.sh, 또는 Demo Mode")`.
+  - **NO-ROI** (P0 가드): Rule 모폴로지가 못 찾음 → `st.warning("Rule-ROI 영역 없음 — IoU 미정의")` + §SCORING_SPEC §7 zero-union 가드(NaN 금지).
+  - **PARTIAL** (P1): 메뉴에 AI 행 없음 → `st.warning("AI ROI 미산출 — Rule만 표시")` + ONNX 윤곽 숨김.
+  - **LOADING** (P1): `st.status("Segmenting meat instances… / Scoring 11 wavelength bands…")` + `st.spinner`.
+  - **ERROR** (P1): ONNX 로드 실패·band 누락·DuckDB 락·오버레이 경로 없음 → `st.error` + `st.expander` traceback.
+  - **P0 floor** = no-DB + no-ROI 가드(크래시 방지), 나머지는 P1.
 
 ---
 
@@ -114,6 +125,7 @@
 ---
 
 ## 우선순위 요약
-- **P0(데모 필수)**: F-A1, F-A2, F-B1, F-B2, F-B3, F-C1, F-C2, F-D1, F-D2, F-E1, F-E2, F-E3
-- **P1**: F-A3, F-B4, F-C3, F-D3  (~~F-B5~~ **컷 — OUT OF SCOPE**: AI는 ROI 전용)
-- **P2(스트레치)**: F-C4, F-D4
+- **P0(데모 필수)**: F-A1, F-A2, F-B1, F-B2, F-B3, F-C1, F-C2, F-D1, F-D2, **F-D3(최소 capture 선택 — 3분할/hero가 의존)**, F-E1, F-E2, F-E3(**no-DB·no-ROI 가드 floor**)
+- **P1**: F-A3, F-B4, F-C3(Explore 탭), **F-D5(Demo Mode)**, F-E3(full 상태 매트릭스), 디자인 P1(카드·band strip·hero opacity 슬라이더)  (~~F-B5~~ **컷 — OUT OF SCOPE**: AI는 ROI 전용)
+- **P2(스트레치)**: F-C4, F-D4, pixel "why this class?" inspector, PNG/CSV export, wipe-slider hero(경쟁 hero라 컷 우선)
+- **디자인 P0(빌드 0분, 사전커밋)**: `.streamlit/config.toml`, `viz/palette.py`, `DEMO_SCRIPT.md`, `run.sh`/`demo.sh` (DESIGN_SPEC §12)

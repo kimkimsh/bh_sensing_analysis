@@ -20,6 +20,11 @@ roi_mask : bool[H,W];  class_map : uint8[H,W] ∈ {0..4};  mono_bg_path / overla
 클래스 인덱스(고정): `NOT_ROI=0, NOT_DONE=1, PROPER=2, SLIGHTLY_BURNT=3, BURNT=4`.
 고기 클래스(AI): `0 BEEF, 1 CHICKEN, 2 LAMB, 3 PORK` (label_map = class_id+1; 빌드시 실제 마스크로 확정).
 
+**COLOR SPACES (3개 분리, `viz/palette.py` Phase-0 동결 — 상세 DESIGN_SPEC §3)**:
+1. **MASK** = 정본 C++ BGR hex, α 0.45(class)/0.30(doneness). 충실 오버레이 전용(green/yellow/red는 여기서만).
+2. **CHART** = CVD-safe **DONENESS_RAMP** 명도순: `NOT_DONE #9AA0AC(그레이·후퇴) / PROPER #1B9E77 / SLIGHTLY #E69F00 / BURNT #7A2200` + 글자칩 ND/P/S/B + `pattern_shape`. `config.toml chartCategoricalColors`로 전 Plotly 상속.
+3. **ROI_DIFF**(hero, 출처지 doneness 아님): `Both #5A5A5A α0.18 / ONNX-only #56B4E9 실선 / Rule-only #D55E00 점선·해치`. doneness 램프 hero 사용 금지.
+
 ## 1. `DonenessKernel` (두 방식 공유)
 입력(동결 데이터형): `roi_mask: bool[H,W]`, `class_map: uint8[H,W] ∈ {0 NOT_ROI,1 NOT_DONE,2 PROPER,3 SLIGHTLY,4 BURNT}` — A·B가 공유 합성배열 단위테스트로 검증(**NOT_DONE 픽셀 포함 필수**). 처리:
 ```
@@ -107,3 +112,15 @@ pork 도넨스는 라이브 **`recognizeComponent_new`** 사용(파장 410/460/5
 led0=410/420/415, led1=440/460/450, led2=460/480/470, led3=515/540/527, led4=520/610/567, led5=585/595/590, led6=610/620/615, led7=620/630/625, led8=650/670/660, led9=720/750/**730**, led10=720/740/**740**, led11=800/830/810, led12=840/870/850, led13=870/910/890, led14=930/970/940, led15=999/999/999(센티넬).
 meatSegNet 5ch = led 2,4,8,10,12 = 460/520/650/720(led10·peak740)/840. 도넨스 규칙 720 = **led10**, 520 = **led4**(peak567, NOT led3=527).
 **720nm 모호 → (min,max,peak)로 led9(730) vs led10(740) 구분**. PNG/JPEG 동일 band → **PNG 우선**. `999_999_999`(led15) 센티넬 드롭. **bands.py는 16행 전부 박제**(led3/6/7/13 누락 시 해당 band 파일 미매핑).
+
+## 7. Agreement 지표 (두 ROI 비교 — 정답 없음 ⇒ "일치도"이지 "정확도" 아님)
+hero scorecard와 F-C2가 소비. ONNX-ROI mask `A`, Rule-ROI mask `B`(둘 다 bool[H,W]):
+```
+inter = (A & B).sum();  union = (A | B).sum()
+IoU       = inter / union
+Dice      = 2*inter / (A.sum() + B.sum())          # full agreement 부근 IoU보다 민감
+area_delta = int(A.sum()) - int(B.sum())           # signed px (near-tie에서도 비0)
+```
+**GUARD(Phase-0 BLOCKING 테스트 4)**: `union == 0` 또는 `(A.sum()+B.sum()) == 0` → `IoU/Dice = "No overlapping ROI"` **센티넬 문자열 반환(NaN/inf 절대 금지** — 무대 크래시 차단).
+**임계 상수(named, 매직넘버 금지)**: `STRONG_AGREEMENT_IOU = 0.90` ("IoU 0.93 — 두 방식이 거의 같은 영역" 평문 캡션 트리거). per-class % 비교에서 `|delta| < AGREEMENT_NOISE_EPS_PTS`는 "within noise" 처리.
+**표기 규칙(DESIGN_SPEC §11)**: 모든 델타 **sign-only + 중립색**, "더 정확/낫다" 금지. NOT_DONE은 분모에서 제거 금지(그레이 후퇴만). `NOT_DONE > NOT_DONE_DOMINANT_PCT(=60)`면 배너 표시. `maillard_score` 공동플롯 금지(스케일 3변형 상이).

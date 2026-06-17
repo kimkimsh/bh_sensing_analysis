@@ -64,8 +64,8 @@
 - **비교축은 항상 per-class %**(공유 계약). `maillard_score`는 **단일방식 뷰에서만**, 라벨 `Maillard(AI weights)`/`(rule weights)`, **동일축 공동플롯 금지**.
 - 날짜/메뉴: **class=색, method=선스타일(ai 실선/cond 점선)**, 기본 1개 클래스(burnt) 라디오로 6계열 난잡 회피. method 색은 전역 고정.
 - **agreement 정량화**: 산점도에 MAE(pts) 대형 캡션 + 점을 signed Δ 발산색으로(체계적 편향 가시). Bland-Altman은 P2 유지.
-- **first-screen hero**: 3분할 + agreement 메트릭을 스크롤 없이 최상단. (§9 수용기준에 추가.)
-- hero 비주얼: **3분할 + 공유 범례 + 동일 누적바 + agreement 델타**(어디/얼마나/일치여부를 per-class %로 동시 전달).
+- **first-screen hero = 단일 ROI-diff overlap-map(PRIMARY) + IoU/Dice/area-delta KPI strip(SECONDARY)**. **3분할은 hero 아님 → fold 아래 expander(TERTIARY)**. [§10 3차 리뷰에서 정정 — 기존 "3분할이 first-screen hero"는 2-hero 모순이라 폐기. 상세 `DESIGN_SPEC §6`.]
+- hero 비주얼: **3영역 overlap-map(Both 그레이/ONNX-only cyan 실선/Rule-only magenta 점선 해치) + 평문 IoU 캡션** — "어디서 두 ROI가 갈리는가"를 직접 가시. (DESIGN_SPEC §7.)
 
 ## 7. 결정 (확정)
 - [x] **하이브리드 채택** — 도넨스 cascade 통일(**라이브 beef, 직접 read 확정**) + **"ONNX ROI vs Rule ROI"** 정직 개명(P0), 세그멘테이션 오버레이 + ROI-diff hero. **F-B5 컷**(사용자 제약: AI=ROI 전용). [2차 리뷰 §9]
@@ -115,3 +115,29 @@
 - **DevEx**: statsmodels 드롭(소비자 없음), all-JPEG fixture 보강(dedup seam), Phase-0 정확성 스모크, Stream A 임계경로 재배분.
 
 **실현가능성(양측 수렴)**: 90분 **viable**, 단 Phase 0 필수 — (a) 라이브 `.h` cascade 전사, (b) label 인코딩 확정, (c) end-to-end beef 정확성 스모크.
+
+---
+
+## 10. 3차 리뷰 — UX/UI/디자인 (Claude 6-lens 동적 워크플로 + Codex xhigh, 집합 완전수렴)
+
+사용자 요청으로 **디자인 차원** 집중 리뷰. **Claude**: 동적 Workflow가 웹 리서치 6주제(Streamlit 테마/이미지비교 컴포넌트/세그멘테이션 오버레이 UX/CVD 팔레트/모델비교 UX/데모 스토리텔링) → 6 렌즈(IA·visual·states/a11y·comparison-trust·features·devex) → 90분 타당성 검증 → 종합(14 agents). **Codex(gpt-5.5, xhigh)**: 동일 5 docs 독립 리뷰(WCAG 대비 Python 계산 + 실 URL 인용). **두 엔진은 결과를 못 보고 작업** → 수렴이 신뢰 신호.
+
+**렌즈 평점(Claude)**: IA 5/10 · **visual 3/10** · **states/a11y 3/10** · comparison-trust 6/10 · features 6/10 · devex 6/10. **Codex 종합 8/10.** → 정확성은 탄탄, **visual craft + 상태/접근성이 구멍**(양측 동일 진단).
+
+**집합 완전수렴(양측 독립 동일 도출)**:
+1. **ROI-diff가 옳은 hero** + 첫 화면은 **단일 hero + KPI scorecard**, 3분할은 fold 아래.
+2. **정확도→일치도(agreement) 리프레임**: 정답 0개라 "더 정확/낫다"는 방어 불가. 델타는 sign-only 중립색.
+3. **green/red doneness 색맹 위험** → CVD-safe 명도순 램프 + 글자칩 + pattern_shape(MASK 오버레이만 C++ 정본).
+4. **NOT_DONE 정직 처리**: 분모 유지, 그레이 후퇴, `>60%` 배너.
+5. **90분은 규율 P0에서만 성립**(polish 추가가 아니라 교체). **Stream D가 숨은 2차 임계경로**(실슬랙 ~7m); Phase-0가 렌더 계약(roi_mask/class_map/경로/paired-쿼리) 동결 필수.
+6. 누락 상태(no-DB/empty/loading/error/partial) → 상태 매트릭스.
+
+**발산(랭킹/취향 only — judge 라운드 불필요)**:
+- **정확 팔레트 hex**: Codex(NOT_DONE #0072B2 등, WCAG 대비 검증) vs Claude(명도순 + NOT_DONE 그레이 후퇴). → **Claude 구조 채택**(순서형 데이터는 명도순이 더 강한 원칙), Codex hex는 빌드 시 대비 대조용.
+- **Demo Mode / 상태 매트릭스 P0 vs P1**: Codex P0 / Claude feasibility P1. → **Claude 채택**(feasibility agent가 Stream D ~7m 슬랙을 명시 모델링, maximal set은 `ninetyMinHolds:false`). crash-방지 subset(no-DB·no-ROI 가드)만 P0.
+
+**확정 결정(사용자)**: 액센트 **Ember #E8602C** · hero **3영역 overlap-map**(wipe-slider 컷) · 스코프 **규율 P0 + 60분 cut-line**.
+
+**산출**: `DESIGN_SPEC.md` 신설(12절, Phase-0 동결) + PLAN/FEATURES_SPEC/SCORING_SPEC 정합 수정 + 본 §10. hero 목업 1장 생성(gstack 디자이너, Ember).
+
+**판정**: 집합 완전수렴, 발산은 취향/랭킹뿐 → **고신뢰 커밋 가능**.
