@@ -208,7 +208,17 @@ def run(argv):
         tAiScorer = AiScorer(MeatSegNet(args.model))
     tCondScorer = ConditionalScorer() if _wantsConditional(args.methods) else None
 
-    tRepo = ScoreRepository(args.db)
+    try:
+        tRepo = ScoreRepository(args.db)
+    except Exception as tError:
+        if "lock" in str(tError).lower():
+            print("ERROR: cannot open " + args.db + " for writing — it is locked by "
+                  "another process (usually a running dashboard).")
+            print("Close the dashboard (Ctrl+C in its terminal), then re-run. "
+                  "The dashboard opens the DB read-only, so run the pipeline first, "
+                  "then launch the dashboard (this is what run.sh does).")
+            return 1
+        raise
     tRepo.initSchema()
     tWritten = 0
     try:
