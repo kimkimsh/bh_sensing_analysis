@@ -19,6 +19,11 @@ import sys
 import cv2
 import numpy as np
 
+# Make the repo-root packages importable when launched as `python cli/run_pipeline.py`
+# or `bash run.sh`: Python puts this script's own dir (cli/) on sys.path, not the repo
+# root, so bh_score would otherwise be unresolved without a manual PYTHONPATH.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from bh_score.ingest.cube import FRAME_HEIGHT, FRAME_WIDTH, LazySpectralCube
 from bh_score.ingest.scanner import DatasetScanner
 from bh_score.persist.repository import ScoreRepository

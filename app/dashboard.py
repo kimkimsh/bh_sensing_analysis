@@ -16,9 +16,14 @@ crashing at import time.
 from __future__ import annotations
 
 import os
+import sys
 
 import numpy as np
 import streamlit as st
+
+# Make the repo-root packages importable when launched as `streamlit run
+# app/dashboard.py`: the script's own dir (app/), not the repo root, is on sys.path.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bh_score.scoring import agreement as agreementMod
 from bh_score.viz import charts, overlay, palette
