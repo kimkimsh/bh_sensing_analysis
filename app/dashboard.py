@@ -128,9 +128,12 @@ def _iouCaption(iou):
     if not isinstance(iou, (int, float)):
         return agreementMod.NO_OVERLAP_SENTINEL + " — IoU undefined"
     tThreshold = format(agreementMod.STRONG_AGREEMENT_IOU, ".2f")
-    tStrong = " — both pick nearly the same region; >" + tThreshold + " = strong agreement"
-    tWeak = " — the two ROI masks diverge here"
-    tTag = tStrong if iou >= agreementMod.STRONG_AGREEMENT_IOU else tWeak
+    if iou >= agreementMod.STRONG_AGREEMENT_IOU:
+        tTag = " — both pick nearly the same region; >" + tThreshold + " = strong agreement"
+    elif iou >= agreementMod.MODERATE_AGREEMENT_IOU:
+        tTag = " — substantial overlap; the ROIs differ mainly at the boundary"
+    else:
+        tTag = " — the two ROI masks diverge here"
     return "IoU " + format(iou, ".2f") + tTag
 
 
@@ -368,13 +371,27 @@ def _resolveDemoCapture(engine):
     return tId
 
 
+_TREND_CLASS_OPTIONS = ("burnt", "slightly_burnt", "proper", "not_done")
+
+
+def _trendClassLabel(classKey):
+    return classKey.replace("_", " ").upper()
+
+
 def _renderTrendsTab(engine, filters):
     st.subheader("By-date trends")
+    tClass = st.radio(
+        "Doneness class",
+        _TREND_CLASS_OPTIONS,
+        index=0,
+        horizontal=True,
+        format_func=_trendClassLabel,
+    )
     tDf = _callOptional(
-        engine, ("byDate", "by_date"), filters.get("menus"), filters.get("dates")
+        engine, ("byDate", "by_date"), filters.get("menus"), filters.get("dates"), tClass
     )
     st.plotly_chart(charts.byDateLines(tDf), width="stretch")
-    st.caption("Class = color, method = line style (AI solid / Rule dashed). Default class: burnt.")
+    st.caption("Class = color, method = line style (AI solid / Rule dashed). One class at a time keeps it readable.")
 
 
 def _renderExploreTab(engine, filters):

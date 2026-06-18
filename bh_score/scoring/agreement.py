@@ -7,6 +7,10 @@ from __future__ import annotations
 import numpy as np
 
 STRONG_AGREEMENT_IOU = 0.90
+# Above this the masks still overlap substantially (differ mainly at the boundary);
+# below it they genuinely diverge. Keeps a high-but-sub-strong IoU from reading as
+# "divergence" in the caption.
+MODERATE_AGREEMENT_IOU = 0.75
 AGREEMENT_NOISE_EPS_PTS = 1.0
 NOT_DONE_DOMINANT_PCT = 60.0
 NO_OVERLAP_SENTINEL = "No overlapping ROI"

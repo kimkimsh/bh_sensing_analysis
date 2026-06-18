@@ -231,11 +231,14 @@ def aiVsRuleScatter(df):
                 hovertemplate="AI %{x:.1f}% / Rule %{y:.1f}% / no ROI overlap<extra></extra>",
             )
         )
+    # Legend as a horizontal strip below the plot so it never collides with the
+    # right-edge IoU colorbar (which otherwise overlaps the trace legend entries).
     tFig.update_layout(
         title="AI vs Rule per-class % (agreement) — MAE " + format(tMae, ".1f") + " pts",
         xaxis_title="ONNX ROI %",
         yaxis_title="Rule ROI %",
-        margin=dict(l=8, r=8, t=40, b=8),
+        legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5),
+        margin=dict(l=8, r=8, t=44, b=56),
     )
     return tFig
 
