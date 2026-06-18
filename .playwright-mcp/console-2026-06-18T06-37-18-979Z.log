@@ -4833,3 +4833,55 @@
 [ 2874465ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
 [ 2874465ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
 [ 2874465ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2876470ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2876470ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2876470ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2876470ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2878473ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2878473ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2878473ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2878473ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2880475ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2880475ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2880475ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2880476ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2882480ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2882480ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2882480ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2882480ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2884482ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2884482ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2884482ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2884482ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2886485ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2886485ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2886485ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2886485ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2888489ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2888489ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2888489ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2888489ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2890492ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2890492ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2890492ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2890492ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2892494ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2892495ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2892495ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2892495ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2894497ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2894497ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2894497ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2894497ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2896500ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2896500ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2896500ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2896500ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2898502ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2898503ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2898503ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2898503ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
+[ 2900507ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/health:0
+[ 2900507ms] [ERROR] Client Error in reaching server endpoint - No response received when attempting to reach /_stcore/health @ http://localhost:8790/static/js/index.dkY5s53S.js:182
+[ 2900507ms] [ERROR] Is Streamlit still running? If you accidentally stopped Streamlit, just restart it in your terminal: @ http://localhost:8790/static/js/index.dkY5s53S.js:187
+[ 2900507ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8790/_stcore/host-config:0
