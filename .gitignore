@@ -78,6 +78,10 @@ Thumbs.db
 # Local Claude Code session buffer (tooling state, not project source)
 .remember/
 
+# MCP / skill tooling state (Playwright browser console logs, Impeccable hook caches) — local-only, not project source
+.playwright-mcp/
+.impeccable/
+
 # Large datasets and model artifacts — managed outside git
 data/
 ai_model/
