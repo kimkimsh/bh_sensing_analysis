@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Beyond Honeycomb · GRILL X — Doneness Sensing Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0B0E14;
+    --bg-2:#0E121A;
+    --surface:#151A23;
+    --surface-2:#1C222E;
+    --line:#262C38;
+    --ink:#F2F4F8;
+    --ink-soft:#C4CBD6;     /* body on dark, >7:1 */
+    --muted:#8A92A0;        /* captions only */
+    --ember:#FF6A2B;
+    --ember-deep:#E8602C;
+    --brand-blue:#2F6BFF;
+    /* doneness ramp (CVD-safe, from project config) */
+    --c-notdone:#9AA0AC;
+    --c-proper:#1B9E77;
+    --c-slightly:#E69F00;
+    --c-burnt:#C0451E;
+    /* roi-diff */
+    --roi-both:#7C828E;
+    --roi-ai:#56B4E9;
+    --roi-rule:#D55E00;
+    --slide-w:1280px;
+    --slide-h:720px;
+    --pad:72px;
+    --spectral:linear-gradient(90deg,#6A3FB5 0%,#2F6BFF 16%,#1E8FFF 26%,#2ECC71 42%,#C8D400 56%,#FF6A2B 72%,#E8412C 82%,#8A1410 94%,#4A0A0A 100%);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#05070B;color:var(--ink);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+  .deck{display:flex;flex-direction:column;align-items:center;gap:28px;padding:40px 0}
+
+  .slide{
+    position:relative;width:var(--slide-w);height:var(--slide-h);
+    background:radial-gradient(120% 120% at 82% -10%, #131A26 0%, var(--bg) 46%, var(--bg-2) 100%);
+    overflow:hidden;border:1px solid var(--line);
+    box-shadow:0 24px 80px rgba(0,0,0,.55);
+    padding:var(--pad);display:flex;flex-direction:column;
+  }
+  /* top spectral hairline — the recurring signature */
+  .slide::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--spectral);opacity:.9}
+
+  /* ambient ember glow lower-right (charbroiler heat) */
+  .slide::after{content:"";position:absolute;right:-160px;bottom:-200px;width:560px;height:560px;
+    background:radial-gradient(circle, rgba(255,106,43,.16) 0%, rgba(255,106,43,0) 62%);pointer-events:none}
+
+  .chrome{position:absolute;left:var(--pad);right:var(--pad);bottom:34px;display:flex;justify-content:space-between;align-items:center;
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--muted);z-index:3}
+  .chrome .mark{display:flex;align-items:center;gap:9px;color:#9aa1ad}
+  .chrome .mark img{width:16px;height:16px;border-radius:4px}
+  .chrome .mark b{color:var(--ink-soft);font-weight:600;letter-spacing:.08em}
+  .pageno{font-variant-numeric:tabular-nums}
+
+  .kicker{display:inline-flex;align-items:center;gap:10px;font-family:"JetBrains Mono",monospace;
+    font-size:12.5px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--ember);margin-bottom:22px}
+  .kicker::before{content:"";width:26px;height:2px;background:var(--ember);border-radius:2px;display:inline-block}
+
+  h1{font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:-.02em;line-height:1.02;text-wrap:balance}
+  h2{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:42px;letter-spacing:-.02em;line-height:1.05;text-wrap:balance;margin-bottom:14px}
+  h2 .em{color:var(--ember)}
+  .lead{font-size:19px;line-height:1.5;color:var(--ink-soft);max-width:62ch}
+  .body{font-size:16px;line-height:1.55;color:var(--ink-soft)}
+  .mono{font-family:"JetBrains Mono",monospace}
+  .nowrap{white-space:nowrap}
+
+  /* ---------- TITLE ---------- */
+  .title{justify-content:center;padding-right:0}
+  .title .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:center;height:100%}
+  .title .left{display:flex;flex-direction:column;justify-content:center}
+  .brandrow{display:flex;align-items:center;gap:14px;margin-bottom:34px}
+  .brandrow img{width:34px;height:34px;border-radius:8px}
+  .brandrow span{font-family:"Space Grotesk";font-weight:700;letter-spacing:.16em;font-size:15px;color:var(--ink-soft)}
+  .title h1{font-size:62px;margin-bottom:20px}
+  .title h1 .x{color:var(--ember)}
+  .title .sub{font-size:20px;line-height:1.45;color:var(--ink-soft);max-width:50ch}
+  .title .sub b{color:var(--ink);font-weight:600}
+  .spectral-bar{height:8px;width:330px;border-radius:8px;background:var(--spectral);margin:30px 0 24px}
+  .title .foot{display:flex;gap:30px;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--muted);letter-spacing:.03em}
+  .title .foot b{color:var(--ink-soft);font-weight:500}
+  .title .hero-wrap{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+  .title .hero-wrap img{display:block;width:100%}
+
+  /* ---------- STAT TILES ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 18px}
+  .tile .n{font-family:"Space Grotesk";font-weight:700;font-size:34px;color:var(--ink);letter-spacing:-.02em;line-height:1}
+  .tile .n small{font-size:18px;color:var(--ember);font-weight:600}
+  .tile .l{margin-top:9px;font-size:13px;line-height:1.35;color:var(--muted)}
+
+  /* two-column content */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:46px;align-items:center;flex:1}
+  .cols.wide-left{grid-template-columns:1.25fr .75fr}
+  .cols.wide-right{grid-template-columns:.8fr 1.2fr}
+  .imgcard{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#000;box-shadow:0 16px 44px rgba(0,0,0,.5)}
+  .imgcard img{display:block;width:100%}
+
+  /* feature list */
+  .flist{display:flex;flex-direction:column;gap:16px;margin-top:6px}
+  .feat{display:flex;gap:14px;align-items:flex-start}
+  .feat .ic{flex:none;width:34px;height:34px;border-radius:9px;background:rgba(255,106,43,.12);border:1px solid rgba(255,106,43,.32);
+    display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono";font-weight:700;color:var(--ember);font-size:14px}
+  .feat h4{font-family:"Space Grotesk";font-weight:600;font-size:17px;color:var(--ink);margin-bottom:3px}
+  .feat p{font-size:14px;line-height:1.45;color:var(--muted)}
+
+  /* big quote */
+  .quote{font-family:"Space Grotesk";font-weight:600;font-size:30px;line-height:1.2;letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
+  .quote .em{color:var(--ember)}
+  .attrib{margin-top:14px;font-family:"JetBrains Mono";font-size:13px;letter-spacing:.04em;color:var(--muted)}
+
+  /* pipeline */
+  .pipe{display:flex;align-items:stretch;gap:0;margin-top:8px}
+  .stage{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 16px;position:relative}
+  .stage .s-no{font-family:"JetBrains Mono";font-size:12px;color:var(--ember);letter-spacing:.1em}
+  .stage h4{font-family:"Space Grotesk";font-weight:600;font-size:16px;margin:7px 0 6px;color:var(--ink)}
+  .stage p{font-size:12.5px;line-height:1.4;color:var(--muted)}
+  .arrow{flex:none;width:34px;display:flex;align-items:center;justify-content:center;color:var(--line);font-size:22px}
+  .twin{display:flex;flex-direction:column;gap:8px}
+  .twin .mini{background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px}
+  .twin .mini b{font-family:"Space Grotesk";color:var(--ink)}
+  .twin .mini.ai b{color:var(--roi-ai)} .twin .mini.rule b{color:var(--roi-rule)}
+
+  /* metric strip / KPI */
+  .kpis{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 20px;min-width:150px}
+  .kpi .k{font-family:"JetBrains Mono";font-size:11.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+  .kpi .v{font-family:"Space Grotesk";font-weight:700;font-size:30px;color:var(--ink);margin-top:6px;line-height:1;font-variant-numeric:tabular-nums}
+  .kpi .v.good{color:var(--c-proper)}
+  .kpi .v.ai{color:var(--roi-ai)} .kpi .v.rule{color:var(--roi-rule)}
+
+  /* legend chips */
+  .legend{display:flex;gap:18px;margin-top:18px;font-size:13px;color:var(--ink-soft);flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:8px}
+  .dot{width:13px;height:13px;border-radius:4px;display:inline-block;border:1px solid rgba(255,255,255,.12)}
+
+  /* dashboard grid */
+  .dash{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex:1;align-content:center}
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .dcard .cap{padding:12px 14px}
+  .dcard .cap .t{font-family:"Space Grotesk";font-weight:600;font-size:15px;color:var(--ink)}
+  .dcard .cap .d{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .dcard .shot{height:158px;background:#05070B;border-bottom:1px solid var(--line);overflow:hidden;display:flex;align-items:flex-start;justify-content:center}
+  .dcard .shot img{width:100%;object-fit:cover;object-position:top}
+
+  /* tech grid */
+  .stack{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:4px}
+  .pkg{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:15px 16px}
+  .pkg .name{font-family:"JetBrains Mono";font-weight:700;font-size:15px;color:var(--ink)}
+  .pkg .ver{font-family:"JetBrains Mono";font-size:12px;color:var(--ember)}
+  .pkg .role{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.35}
+
+  .disc{margin-top:22px;background:rgba(255,106,43,.06);border:1px solid rgba(255,106,43,.28);border-radius:12px;padding:16px 20px}
+  .disc h4{font-family:"Space Grotesk";font-weight:600;font-size:15px;color:var(--ember);margin-bottom:6px;letter-spacing:.02em}
+  .disc p{font-size:13.5px;line-height:1.5;color:var(--ink-soft)}
+  .disc .em{color:var(--ink);font-weight:600}
+
+  /* problem big number */
+  .bignum{font-family:"Space Grotesk";font-weight:700;font-size:128px;line-height:.9;letter-spacing:-.04em;
+    background:var(--spectral);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .problem-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:50px;align-items:center;flex:1}
+  .factrow{display:flex;gap:30px;margin-top:24px}
+  .factrow .f .fn{font-family:"Space Grotesk";font-weight:700;font-size:30px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .factrow .f .fl{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.3}
+  .zero{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px 26px}
+  .zero .z{font-family:"Space Grotesk";font-weight:700;font-size:54px;color:var(--ember);line-height:1}
+  .zero .zl{font-size:14px;color:var(--ink-soft);margin-top:6px}
+
+  /* closing */
+  .closing{justify-content:center;text-align:left}
+  .closing h1{font-size:50px;margin-bottom:18px}
+  .closing .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:54px;align-items:center;height:100%}
+  .unlock{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  .unlock .u{display:flex;gap:13px;align-items:flex-start}
+  .unlock .u .ck{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(27,158,119,.15);border:1px solid rgba(27,158,119,.4);
+    color:var(--c-proper);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .unlock .u p{font-size:15px;line-height:1.45;color:var(--ink-soft)}
+  .unlock .u p b{color:var(--ink)}
+  .endcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:40px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+  .endcard img{width:62px;height:62px;border-radius:14px;margin-bottom:20px}
+  .endcard .bn{font-family:"Space Grotesk";font-weight:700;font-size:24px;letter-spacing:.04em;color:var(--ink)}
+  .endcard .tg{font-size:15px;color:var(--ink-soft);margin-top:10px;line-height:1.45}
+  .endcard .sb{height:6px;width:120px;border-radius:6px;background:var(--spectral);margin:22px auto 0}
+
+  /* helpers */
+  .grow{flex:1}
+  .mt-auto{margin-top:auto}
+  .heat-text{color:var(--ember)}
+
+  @media print{
+    html,body{background:var(--bg)}
+    .deck{padding:0;gap:0}
+    .slide{box-shadow:none;border:none;page-break-after:always;break-after:page}
+    .slide:last-child{page-break-after:avoid}
+    .slide::after{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  }
+  @page{size:1280px 720px;margin:0}
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide title">
+    <div class="grid">
+      <div class="left">
+        <div class="brandrow">
+          <img src="assets/bh-symbol.png" alt="Beyond Honeycomb" />
+          <span>BEYOND&nbsp;HONEYCOMB</span>
+        </div>
+        <h1>Quantifying<br/>Doneness<span class="x">.</span></h1>
+        <div class="spectral-bar"></div>
+        <p class="sub">A multispectral sensing-analysis tool that scores grill doneness two independent ways — <b>AI segmentation</b> vs <b>spectral rules</b> — and asks where they agree.</p>
+        <div class="foot">
+          <div><b>GRILL&nbsp;X</b><br/>Sensing&nbsp;Analysis</div>
+          <div><b>ONNX-ROI</b><br/>vs&nbsp;Rule-ROI</div>
+          <div><b>11&nbsp;wavelengths</b><br/>410–930&nbsp;nm</div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="hero-wrap"><img src="assets/hero.png" alt="GRILL X by Beyond Honeycomb" /></div>
+      </div>
+    </div>
+    <div class="chrome">
+      <span class="mark"><img src="assets/bh-symbol.png"/><b>BEYOND HONEYCOMB</b></span>
+      <span class="pageno">01</span>
+    </div>
+  </section>
+
+  <!-- 2 · COMPANY -->
+  <section class="slide">
+    <div class="kicker">The Company</div>
+    <div class="cols wide-left">
+      <div>
+        <h2>Cooking is <span class="em">science</span> — so we measure it.</h2>
+        <p class="lead">Founded in Seoul in 2020 by a team of ex-Samsung Research engineers, <b style="color:var(--ink)">Beyond Honeycomb</b> builds AI cooking robots that quantify flavor at the molecular level and reproduce chef-level results on every cut.</p>
+        <div class="tiles" style="margin-top:30px">
+          <div class="tile"><div class="n">100<small>+</small></div><div class="l">customer brands<br/>(Nov 2025)</div></div>
+          <div class="tile"><div class="n">150<small>+</small></div><div class="l">GRILL X robots<br/>deployed</div></div>
+          <div class="tile"><div class="n">$14.1<small>M</small></div><div class="l">raised · led by<br/>LB Investment</div></div>
+          <div class="tile"><div class="n">500K<small>+</small></div><div class="l">AI cooking<br/>data points</div></div>
+        </div>
+      </div>
+      <div class="imgcard"><img src="assets/grill-action.png" alt="GRILL X grilling on a charbroiler" /></div>
+    </div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BEYOND HONEYCOMB</b></span><span class="pageno">02</span></div>
+  </section>
+
+  <!-- 3 · PRODUCT / TECH -->
+  <section class="slide">
+    <div class="kicker">The Product · GRILL X</div>
+    <div class="cols wide-right">
+      <div>
+        <h2>The world's first<br/><span class="em">AI grilling</span> robot.</h2>
+        <p class="body" style="margin-bottom:8px">A patented molecular sensor and computer vision read the meat in real time — then a 5-axis arm grills it to chef-level doneness. One button, any grill.</p>
+        <div class="legend" style="margin-top:14px">
+          <span class="mono" style="color:var(--ember)">up to 80 servings / hour</span>
+          <span class="mono" style="color:var(--c-proper)">training time −80%</span>
+        </div>
+      </div>
+      <div class="flist">
+        <div class="feat"><div class="ic">λ</div><div><h4>Molecular + vision sensing</h4><p>Reads Maillard browning, char, drip loss and fat/collagen state in ~0.3&nbsp;seconds.</p></div></div>
+        <div class="feat"><div class="ic">↻</div><div><h4>Scan once, reproduce in 48h</h4><p>A chef cooks a dish once; the sensor digitizes it; the AI learns to replicate it.</p></div></div>
+        <div class="feat"><div class="ic">⊞</div><div><h4>Vertically integrated</h4><p>Sensor, on-device AI and robotics all built in-house — fits onto any existing grill.</p></div></div>
+        <div class="feat"><div class="ic">✓</div><div><h4>Proven at scale</h4><p>NAVER & KT cafeterias, Andaz Seoul — Korea's first 5-star-hotel AI chef robot.</p></div></div>
+      </div>
+    </div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BEYOND HONEYCOMB</b></span><span class="pageno">03</span></div>
+  </section>
+
+  <!-- 4 · THE PROBLEM -->
+  <section class="slide">
+    <div class="kicker">The Problem</div>
+    <div class="problem-grid">
+      <div>
+        <h2>How do you trust a sensor<br/>with <span class="em">no answer key?</span></h2>
+        <p class="lead">The charbroiler sensing rig produces tens of thousands of multispectral frames across ten menus — but not a single ground-truth label. There is nothing fixed to score a new recognition model against.</p>
+        <div class="factrow">
+          <div class="f"><div class="fn mono">33,682</div><div class="fl">spectral frames<br/>captured</div></div>
+          <div class="f"><div class="fn mono">~2,978</div><div class="fl">captures across<br/>10 menus</div></div>
+          <div class="f"><div class="fn mono">8–16</div><div class="fl">wavelength bands<br/>per capture</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="bignum">0</div>
+        <div class="zero" style="margin-top:6px"><div class="zl"><b style="color:var(--ember);font-family:'Space Grotesk'">Zero ground-truth labels.</b><br/>Comparing one approach to another was subjective, manual and slow.</div></div>
+      </div>
+    </div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BH · SENSING ANALYSIS</b></span><span class="pageno">04</span></div>
+  </section>
+
+  <!-- 5 · THE APPROACH / THESIS -->
+  <section class="slide">
+    <div class="kicker">The Approach</div>
+    <h2>Score it <span class="em">two ways</span> — then measure the agreement.</h2>
+    <p class="lead" style="margin-bottom:26px">With no labels, "more accurate" is unprovable. So we hold the doneness logic constant and vary only <i>how the meat region is found</i> — then ask: where do the two methods see the same meat?</p>
+    <div class="pipe" style="margin-bottom:6px">
+      <div class="stage"><div class="s-no">METHOD A</div><h4 style="color:var(--roi-ai)">ONNX ROI</h4><p>meatSegNet AI segmentation finds the meat region from 5 LED channels.</p></div>
+      <div class="arrow">+</div>
+      <div class="stage" style="flex:1.1;background:rgba(255,106,43,.07);border-color:rgba(255,106,43,.3)"><div class="s-no">SHARED</div><h4>One doneness cascade</h4><p>The exact live charbroiler rule — identical for both. The <b style="color:var(--ink)">only</b> variable is the ROI.</p></div>
+      <div class="arrow">+</div>
+      <div class="stage"><div class="s-no">METHOD B</div><h4 style="color:var(--roi-rule)">Rule ROI</h4><p>Spectral rule-based morphology finds the meat region from raw bands.</p></div>
+    </div>
+    <div class="disc" style="margin-top:24px"><p style="font-size:16px"><b class="em" style="font-family:'Space Grotesk';font-size:18px">Agreement, not accuracy.</b> &nbsp;We never claim a winner. We show <span class="em">where the two methods align and where they diverge</span> — an honest signal engineers can act on.</p></div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BH · SENSING ANALYSIS</b></span><span class="pageno">05</span></div>
+  </section>
+
+  <!-- 6 · HOW IT WORKS / PIPELINE -->
+  <section class="slide">
+    <div class="kicker">How It Works · Pipeline</div>
+    <h2>From raw spectra to a single number.</h2>
+    <div class="pipe" style="margin-top:24px;align-items:stretch">
+      <div class="stage"><div class="s-no">01 · INGEST</div><h4>Capture scan</h4><p>480×640 multispectral cubes grouped by device, cut & date.</p></div>
+      <div class="arrow">→</div>
+      <div class="stage" style="flex:1.15">
+        <div class="s-no">02 · SCORE ×2</div><h4>Twin ROI scorers</h4>
+        <div class="twin" style="margin-top:8px">
+          <div class="mini ai"><b>ONNX</b> · meatSegNet · 5 LEDs · loads in 0.36s</div>
+          <div class="mini rule"><b>Rule</b> · spectral morphology · 7 bands</div>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="stage"><div class="s-no">03 · CLASSIFY</div><h4>Shared kernel</h4><p>Identical cascade → NOT&nbsp;DONE / PROPER / SLIGHTLY / BURNT per pixel.</p></div>
+      <div class="arrow">→</div>
+      <div class="stage"><div class="s-no">04 · SERVE</div><h4>DuckDB → dashboard</h4><p>Persisted once, queried instantly in a Streamlit UI.</p></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--c-notdone)"></i> NOT DONE</span>
+      <span><i class="dot" style="background:var(--c-proper)"></i> PROPER</span>
+      <span><i class="dot" style="background:var(--c-slightly)"></i> SLIGHTLY BURNT</span>
+      <span><i class="dot" style="background:var(--c-burnt)"></i> BURNT</span>
+      <span style="color:var(--muted)" class="mono">· meatSegNet classes: BEEF · CHICKEN · LAMB · PORK</span>
+    </div>
+    <div class="chrome mt-auto"><span class="mark"><img src="assets/bh-symbol.png"/><b>BH · SENSING ANALYSIS</b></span><span class="pageno">06</span></div>
+  </section>
+
+  <!-- 7 · HERO RESULT -->
+  <section class="slide">
+    <div class="kicker">The Result · ROI-Diff Overlap Map</div>
+    <div class="cols" style="grid-template-columns:.92fr 1.08fr">
+      <div>
+        <h2>Same doneness rules.<br/><span class="em">Different ROI mask.</span></h2>
+        <p class="body">On a curated beef-striploin capture, both methods select nearly the same meat region — the overlap map shows it pixel for pixel.</p>
+        <div class="kpis">
+          <div class="kpi"><div class="k">ROI IoU</div><div class="v good">0.893</div></div>
+          <div class="kpi"><div class="k">Area Δ</div><div class="v">+2,415<span style="font-size:14px;color:var(--muted)"> px</span></div></div>
+        </div>
+        <div class="kpis" style="margin-top:8px">
+          <div class="kpi"><div class="k">ONNX ROI</div><div class="v ai">32,991</div></div>
+          <div class="kpi"><div class="k">Rule ROI</div><div class="v rule">30,576</div></div>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:var(--roi-both)"></i> Both agree</span>
+          <span><i class="dot" style="background:var(--roi-ai)"></i> ONNX-only</span>
+          <span><i class="dot" style="background:var(--roi-rule)"></i> Rule-only</span>
+        </div>
+      </div>
+      <div class="imgcard" style="max-height:540px"><img src="assets/app-compare.png" alt="ROI-diff overlap map" style="object-fit:cover;object-position:top;max-height:540px" /></div>
+    </div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BH · SENSING ANALYSIS</b></span><span class="pageno">07</span></div>
+  </section>
+
+  <!-- 8 · THE DASHBOARD -->
+  <section class="slide">
+    <div class="kicker">The Dashboard · Four Views</div>
+    <h2>One workspace, from headline to raw row.</h2>
+    <div class="dash" style="margin-top:18px;flex:none">
+      <div class="dcard"><div class="shot"><img src="assets/app-compare.png" alt=""/></div><div class="cap"><div class="t">Compare</div><div class="d">ROI-diff hero + IoU / Dice / area-Δ scorecard.</div></div></div>
+      <div class="dcard"><div class="shot"><img src="assets/app-panel.png" alt=""/></div><div class="cap"><div class="t">Per-panel</div><div class="d">Mono · AI · Rule overlays + 4-way doneness bars.</div></div></div>
+      <div class="dcard"><div class="shot"><img src="assets/app-trends.png" alt=""/></div><div class="cap"><div class="t">Trends</div><div class="d">Doneness over time — class by color, method by line style.</div></div></div>
+      <div class="dcard"><div class="shot"><img src="assets/app-explore.png" alt=""/></div><div class="cap"><div class="t">Explore</div><div class="d">AI-vs-Rule scatter, by-menu bars, filterable table.</div></div></div>
+    </div>
+    <p class="body" style="margin-top:20px;color:var(--muted)">A guided <b style="color:var(--ink-soft)">Demo mode</b> auto-loads the curated capture and narrates a six-beat story; <b style="color:var(--ink-soft)">Explore mode</b> opens the full filter set.</p>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BH · SENSING ANALYSIS</b></span><span class="pageno">08</span></div>
+  </section>
+
+  <!-- 9 · RESULTS -->
+  <section class="slide">
+    <div class="kicker">What We Found</div>
+    <h2>Two very different methods, <span class="em">strong agreement.</span></h2>
+    <div class="tiles" style="margin-top:26px">
+      <div class="tile"><div class="n">2,978</div><div class="l">captures scored end-to-end across all 10 menus</div></div>
+      <div class="tile"><div class="n">0.893</div><div class="l">ROI IoU on the demo capture — above the 0.90 strong-agreement line</div></div>
+      <div class="tile"><div class="n">3.0<small> pts</small></div><div class="l">mean per-class doneness difference (MAE) AI vs Rule</div></div>
+      <div class="tile"><div class="n">8 / 8</div><div class="l">offline tests pass · zero NaN · empty-ROI handled gracefully</div></div>
+    </div>
+    <div class="disc" style="margin-top:30px"><h4>The takeaway</h4><p>The AI ROI tracks the rule-based ROI closely while recovering a slightly cleaner boundary — <span class="em">without any menu-specific retuning</span>. Where they diverge is now visible, measurable, and reviewable instead of a matter of opinion.</p></div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BH · SENSING ANALYSIS</b></span><span class="pageno">09</span></div>
+  </section>
+
+  <!-- 10 · TECH STACK & DISCIPLINE -->
+  <section class="slide">
+    <div class="kicker">Built With</div>
+    <h2>A lean, local, reproducible stack.</h2>
+    <div class="stack" style="margin-top:22px">
+      <div class="pkg"><span class="name">ONNX Runtime</span> <span class="ver">1.26</span><div class="role">meatSegNet inference on CPU — auto-resolves the 134 MB weights file.</div></div>
+      <div class="pkg"><span class="name">DuckDB</span> <span class="ver">1.5</span><div class="role">Columnar store — 10–200× faster than SQLite for date/menu rollups.</div></div>
+      <div class="pkg"><span class="name">Streamlit</span> <span class="ver">1.58</span><div class="role">Read-only dashboard with Demo & Explore modes.</div></div>
+      <div class="pkg"><span class="name">Plotly</span> <span class="ver">6.8</span><div class="role">Line, scatter & bar charts on a colorblind-safe palette.</div></div>
+      <div class="pkg"><span class="name">OpenCV · NumPy</span> <span class="ver">headless</span><div class="role">Vectorized spectral rules & morphology, overflow-safe.</div></div>
+      <div class="pkg"><span class="name">Python · uv</span> <span class="ver">3.12</span><div class="role">8 dependencies, fully pinned in <span class="mono">uv.lock</span>.</div></div>
+    </div>
+    <div class="disc"><h4>Discipline that earns trust</h4><p>No "accuracy / better / correct" language anywhere — only <span class="em">agreement</span>. Deltas are sign-only on a neutral color so no method looks "right." The whole palette is colorblind-safe.</p></div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BH · SENSING ANALYSIS</b></span><span class="pageno">10</span></div>
+  </section>
+
+  <!-- 11 · CLOSING -->
+  <section class="slide closing">
+    <div class="grid">
+      <div>
+        <div class="kicker">What It Unlocks</div>
+        <h1>An honest yardstick<br/>for <span class="heat-text">sensing AI.</span></h1>
+        <div class="unlock">
+          <div class="u"><div class="ck">→</div><p><b>Validate new models</b> against a fixed reference, even with no labels.</p></div>
+          <div class="u"><div class="ck">→</div><p><b>See divergence as a number</b> — IoU, Dice and area-Δ replace eyeballing overlays.</p></div>
+          <div class="u"><div class="ck">→</div><p><b>Scale to new proteins</b> as GRILL X expands beyond beef.</p></div>
+        </div>
+      </div>
+      <div class="endcard">
+        <img src="assets/bh-symbol.png" alt="Beyond Honeycomb" />
+        <div class="bn">BEYOND HONEYCOMB</div>
+        <div class="tg">Chef-level grilling with AI precision — every time.</div>
+        <div class="sb"></div>
+      </div>
+    </div>
+    <div class="chrome"><span class="mark"><img src="assets/bh-symbol.png"/><b>BEYOND HONEYCOMB</b></span><span class="pageno">11</span></div>
+  </section>
+
+</div>
+</body>
+</html>
