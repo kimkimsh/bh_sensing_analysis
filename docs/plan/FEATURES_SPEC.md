@@ -88,7 +88,7 @@
 - 설명: AI 인스턴스별(class/픽셀/bbox/점수) 표. (v1 컷 후보)
 
 ### F-D5 — Demo Mode (가이드 골든패스) · **P1**
-- 설명: 사이드바 `st.radio('Demo'|'Explore')`. **Demo**: 큐레이션 capture_id(`260612_office_backup/206/beef/striploin/251016`) 하드코딩·자동선택(2.8k행 테이블 헌트 skip), Compare hero 사전렌더(detail expander 접힘), 6-beat `DEMO_SCRIPT`를 번호 `st.status`/`st.info` 캡션으로 구동. **Explore**: 전체 필터 + capture 테이블.
+- 설명: 사이드바 `st.radio('Demo'|'Explore')`. **Demo**: 큐레이션 capture_id(`260612_office_backup/206/beef/striploin/250903`, Phase-0 게이트 확정) 하드코딩·자동선택(2.8k행 테이블 헌트 skip), Compare hero 사전렌더(detail expander 접힘), 6-beat `DEMO_SCRIPT`를 번호 `st.status`/`st.info` 캡션으로 구동. **Explore**: 전체 필터 + capture 테이블.
 - AC: Demo 모드가 큐레이션 capture로 **테이블 인터랙션 0회**로 열린다. Phase-2 스모크가 해당 capture의 **비자명·서사일관 ROI 불일치**(near-perfect overlap 아님)를 검증. 애니메이션/온보딩 플로우 없음(스코프 가드). 상세 DESIGN_SPEC §10.
 
 ---

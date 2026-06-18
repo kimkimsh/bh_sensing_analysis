@@ -190,7 +190,7 @@ Stream D 빌드 전 작성. **Phase-2 통합자는 이 경로만 버그수정.**
 6. close.
 
 ### 10.2 Demo Mode UI (F-D5 · P1)
-사이드바 `st.radio('Demo'|'Explore')`. **Demo**: 큐레이션된 capture_id(`260612_office_backup/206/beef/striploin/251016`) 하드코딩·자동선택(2.8k행 테이블 헌트 skip), Compare hero 사전렌더(detail expander 접힘), 6-beat를 번호 `st.status`/`st.info` 캡션으로. **Explore**: 전체 필터 + capture 테이블.
+사이드바 `st.radio('Demo'|'Explore')`. **Demo**: 큐레이션된 capture_id(`260612_office_backup/206/beef/striploin/250903`) 하드코딩·자동선택(2.8k행 테이블 헌트 skip), Compare hero 사전렌더(detail expander 접힘), 6-beat를 번호 `st.status`/`st.info` 캡션으로. **Explore**: 전체 필터 + capture 테이블.
 > ⚠️ **Phase-0 큐레이션 게이트(인간 육안 필수)**: fixture가 **비자명·서사일관 ROI 불일치**(Rule-only magenta = 모폴로지/트레이존 아티팩트, ONNX-only cyan = AI가 실제 고기 회복)를 보이는지 실제 오버레이로 확인. near-perfect overlap이면 hero가 비므로 다른 capture를 Phase-0에서 손으로 교체.
 
 ---

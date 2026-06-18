@@ -2,7 +2,8 @@
 # Demo runner (DESIGN_SPEC §10/§12, Phase-0 FROZEN).
 # Scores a tiny sample, then opens the dashboard; pick "Demo" mode in the sidebar to
 # auto-select the curated beef striploin capture and walk the 6-beat DEMO_SCRIPT with
-# zero table interaction. Curated capture: 260612_office_backup/206/beef/striploin/251016.
+# zero table interaction. Curated capture: 260612_office_backup/206/beef/striploin/250903
+# (Phase-0 gate: 251016 produced zero AI detections and was replaced).
 set -euo pipefail
 cd "$(dirname "$0")"
 PY=".venv/bin/python"

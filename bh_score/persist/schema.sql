@@ -11,7 +11,11 @@ CREATE TABLE IF NOT EXISTS captures (
   capture_date  DATE,                 -- 2000 + YY
   capture_index INTEGER,
   band_count    INTEGER,              -- per-capture dynamic count (8-16); never hardcoded
-  frame_dir     VARCHAR
+  frame_dir     VARCHAR,
+  mask_path     VARCHAR,              -- npz bundle (mono_bg, onnx/rule mask + class_map) for the hero
+  iou           DOUBLE,               -- ROI agreement (NULL when no overlapping ROI)
+  dice          DOUBLE,
+  area_delta_px INTEGER               -- signed ONNX-ROI px minus Rule-ROI px
 );
 
 -- One row per (capture, method) — the main table the dashboard aggregates.
@@ -22,6 +26,10 @@ CREATE TABLE IF NOT EXISTS scores (
   menu                VARCHAR,
   capture_date        DATE,
   pixels_roi          INTEGER,
+  pixels_not_done     INTEGER,        -- raw class counts feed the honest 4-way bar
+  pixels_proper       INTEGER,        -- (DESIGN_SPEC §11: show absolute px next to %)
+  pixels_slightly_burnt INTEGER,
+  pixels_burnt        INTEGER,
   pct_proper          DOUBLE,
   pct_slightly_burnt  DOUBLE,
   pct_burnt           DOUBLE,
